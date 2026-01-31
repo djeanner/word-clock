@@ -106,8 +106,7 @@ int main() {
 
 If you tell me your exact pin list (e.g. 0–15, or a sparse subset) and desired frequency and duty, I can adapt this snippet exactly to your case (including clock‑divider math if you want a non‑integer divider).
 
-# CPP class for implementation
+# more information
 
 ref. [pwm.h](doc/pwm.h)
-***No AI from this point...***
 
