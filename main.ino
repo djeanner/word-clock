@@ -1,14 +1,15 @@
 /*
-  All GPIO Open Collector – No Pulls
-  Raspberry Pi Pico (Arduino-Pico core)
+  // use pico board library by Earle F. Philhower, III 
 */
+
 #include <time.h>
-//#include "hardware/rtc.h"
 #include <TimeLib.h>
 // ======================================================
 // SERIAL DEBUG MACROS
 // ======================================================
-#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output
+
+
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output
 
 #if SERIAL_DEBUG
  #define DBG_BEGIN(x)   Serial.begin(x)
@@ -93,7 +94,9 @@
 #define MTWENTY 13 // was 22
 #define EXTRA 21 // new
 #define RADIOINPUT 28 // 28: GP28 A2
-#define LEDPIN 25
+#define LEDPIN LED_BUILTIN
+
+
 class Ring {
 private:
     size_t pointer;
@@ -183,7 +186,8 @@ public:
 
 };
 
-const bool debug = false;
+const bool debug = true;
+const bool debug2 = true;
 
 Ring storedUpTimes(15);
 
@@ -371,18 +375,31 @@ void ocReleaseAll() {
 int inputValue;
 
 // Drive all pins LOW (open-collector active)
+void ocDriveLowAll_fullOK() {
+    for (size_t lo = 0; lo < totOutputPins; lo++) { const size_t pin = lo;     
+      if (values[pin] > 0) {
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
+      } else {
+        pinMode(pin, INPUT);
+        //digitalWrite(pin, LOW); // dummy
+      }
+    }
+}
+
+// chop led current 
 void ocDriveLowAll(size_t cycles = 100) {
   for (size_t t = 0; t < cycles; t++) {
 
     for (size_t lo = 0; lo < totOutputPins; lo++) { 
-      pinMode(lo, INPUT);   // no pull
+      pinMode(lo, INPUT);   // OFF State
     }
     delay(10);
     for (size_t lo = 0; lo < totOutputPins; lo++) { const size_t pin = lo;
         
       if (values[pin] > 0) {
         pinMode(pin, OUTPUT);
-        digitalWrite(pin, LOW);
+        digitalWrite(pin, LOW); // ON State
       } else {
         pinMode(pin, INPUT);
         //digitalWrite(pin, LOW); // dummy
@@ -392,20 +409,9 @@ void ocDriveLowAll(size_t cycles = 100) {
   }
 }
 
-void storeTime() {
-  tmElements_t tm;
-  tm.Year = CalendarYrToTm(2026); // NOT 1900-based
-  tm.Month = DCF77_getMonth() - 1; // jan = 0;
-  tm.Day = DCF77_getDayM();
-  tm.Hour = DCF77_getHour();
-  tm.Minute = DCF77_getMin();
-  tm.Second = 0;
-  setTime(makeTime(tm));
-}
 
-void printTime() {
-  time_t t = now();   // current TimeLib time
 
+void printTime(time_t t = now()) {
   char buf[32];
   snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
            year(t), month(t), day(t),
@@ -487,11 +493,8 @@ void setOutputLed(int curMin, int curHourtrue) {
     // if ((curHourtrue < 12) || (curHourtrue == 24)) {values[AM] = 1; values[PM] = 0;} else {values[AM] = 0;values[PM] = 1;}
 }
 
-void displayUnit(int unitDigit = 0, int numverCycles = 5) {
-  for (size_t lo = 0; lo < totOutputPins; lo++) {
-    const size_t pin = lo;
-    values[pin] = 0;
-  }
+void displayUnit(int unitDigit = 0) {
+ 
   if (unitDigit == 1) {values[H1_] = 1;}
   if (unitDigit == 2) {values[H2_] = 1;}
   if (unitDigit == 3) {values[H3_] = 1;}
@@ -504,12 +507,148 @@ void displayUnit(int unitDigit = 0, int numverCycles = 5) {
   if (unitDigit == 10) {values[H10] = 1;}
   if (unitDigit == 11) {values[H11] = 1;}
   if (unitDigit == 12) {values[H12] = 1;}
-  if (unitDigit == 0) {ocDriveLowAll(1);}
-  else { ocDriveLowAll(numverCycles);}
+
+  if (unitDigit == 0) { // clear display
+    for (size_t i = 0; i < totOutputPins; i++) {
+      values[i] = 0;
+    }
+    ocDriveLowAll(1);
+  } else {
+    ocDriveLowAll_fullOK();
+  }
   return;
 }
 
+class ClockControl {
+private:
+  bool qualityAccept;// 0 take any time and does not running time correction. 1// used for correction
+  size_t pointer;
+  long int period;
+  bool isPositiveCorrection;
+  const size_t fsize;
+  time_t *tArray;
+  long int *rArray;
+public:
+  ClockControl(size_t size) : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size) {
+            tArray = new time_t[size];
+            rArray = new long int[size];
+            ;
+  } 
+  ~ClockControl() {
+        delete[] tArray;
+        delete[] rArray;
+  }
+  time_t getLastTime() {
+    if (pointer == 0) {return 0;}
+    return tArray[pointer];
+  }
+  long int getLastCorrection() {
+    if (pointer == 0) {return 0;}
+    return rArray[pointer];
+  }
+
+  // curSec is counter incrementing every second and call for each value (every second)
+  void adjustTime(long int curSec) {
+    if (! qualityAccept) {return;}
+    if (period == 0) {return;}
+    if ((curSec % period) == 0) {
+      if (isPositiveCorrection) {
+        setTime(now() + 1);
+      } else {
+        setTime(now() - 1);
+      }
+    }
+    return;
+  }
+
+  void storeTime(tmElements_t tm) {
+    
+    const time_t t = makeTime(tm);
+    // calculate when should skip a second. 
+    const time_t tNow = now();
+    setTime(t); // correct time
+    
+    // analyse correction
+    const long diff = (long)t - (long)tNow; // error in seconds / if positive internal time is too slow
+    const unsigned long  unsignedDiff = labs(diff);
+    const long int lastTime = getLastTime();
+    const long int secondsSinceLastTime = (long)t - lastTime;
+    //const long int secondsSinceLastTime_now = (long)tNow - lastTime;
+    const bool debug3 = true;
+    if (debug3) DBG_PRINT("qualityAccept ");
+    if (debug3) {if (qualityAccept) DBG_PRINT("Y"); else DBG_PRINT("N");}
+    if (debug3) DBG_PRINT(" tested time : ");
+    if (debug3) printTime(t);
+    if (debug3) DBG_PRINT("now : ");
+    if (debug3) printTime(t);
+    if (debug3) DBG_PRINT("last stored time : ");
+    if (debug3) printTime(lastTime);
+    if (!qualityAccept) {
+          const unsigned long minNumberSeconds = 10*60; // risk of same wrong time if does not wait enough 10 minutes
+
+         
+
+          if (labs(secondsSinceLastTime) < minNumberSeconds) {
+            if (debug3) DBG_PRINTLN("risk of same wrong time if does not wait enough 10 minutes ");
+            return;
+            
+            } else {
+                          
+                          if (debug3) DBG_PRINTLN("see if new time consistant with earlyer data Time is reliable reliable");
+                          const int factor = 100;
+                          if ((factor * diff / labs(secondsSinceLastTime)) < 1) {
+                              if (debug3) DBG_PRINT(factor);
+                              if (debug3) DBG_PRINT(" * ");
+                              if (debug3) DBG_PRINT(diff);
+                              if (debug3) DBG_PRINT(" / ");
+                              if (debug3) DBG_PRINT(labs(secondsSinceLastTime));
+                              if (debug3) DBG_PRINTLN(" < 1");
+
+                              if (debug3) DBG_PRINTLN("crit OK: consistent");
+                              qualityAccept = true;
+                          } else {
+                           if (debug3) DBG_PRINT(factor);
+                              if (debug3) DBG_PRINT(" * ");
+                              if (debug3) DBG_PRINT(diff);
+                              if (debug3) DBG_PRINT(" / ");
+                              if (debug3) DBG_PRINT(labs(secondsSinceLastTime));
+                              if (debug3) DBG_PRINTLN(" >= 1");
+
+                              if (debug3) DBG_PRINTLN("crit failed times not consistent NOT considering time as relable");
+                          }
+
+            }
+            //tmElements_t tm;
+            //breakTime(t, tm);
+
+    } else {
+      const unsigned long minNumberSeconds = 60*60;
+      if (unsignedDiff < minNumberSeconds) return; // not long enough to calculate meaningfull correction
+
+      const long int durationOneDay = 24 * 60 * 60;
+      long int errorSecondsPerDay = (diff * durationOneDay) / ((long)tNow - lastTime);
+      if (true) {errorSecondsPerDay += getLastCorrection();}
+      tArray[pointer] = tNow;
+      rArray[pointer] = errorSecondsPerDay;
+      if (errorSecondsPerDay == 0) {
+        period = 0;
+      } else {
+        period = durationOneDay / errorSecondsPerDay;
+      }
+      isPositiveCorrection = errorSecondsPerDay > 0;
+      pointer++;
+      if (pointer == fsize) pointer = 0;
+    }
+    return;
+  }
+};
+
+ClockControl theClockControl(10);
+
 void setup() {
+  // for led needs to set wifi on pi pico W
+
+
   DBG_BEGIN(115200);
   delay(2000);
   analogReadResolution(12);
@@ -528,7 +667,8 @@ void setup() {
   // setting up Led
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
-  displayUnit(8);
+  DBG_PRINTLN("End setup");
+
 }
 
 
@@ -548,7 +688,10 @@ void loop() {
     const bool cursor_on = true;
     unsigned long int countDownValidTime = 0; // in seconds
     const unsigned long int initCountDownValidTime = 30; // debug       60 * 60 * 24 * 30 ; // one month in seconds
-    for (int loop1 = 0; loop1 < 1000000000; loop1 ++) {
+
+    DBG_PRINTLN("starts looop1");
+    for (int loop1 = 0; loop1 < 100000000; loop1 ++) {
+
       // meansure DCF77 level
       const int inVal = analogRead(RADIOINPUT);
     
@@ -557,12 +700,14 @@ void loop() {
       //const size_t avDur = 150; // average duration pulse
       const size_t supForRounding = 500; // average duration pulse
       const unsigned long int substract = static_cast<unsigned long int>(supForRounding + storedUpTimes.getAverageCore());
+      const long seconds = (cMili - substract) / 1000L;
       const size_t indexSec = static_cast<size_t>(((cMili - substract) / 1000UL) % 60UL);
 
       if (oldIndexSec != indexSec) {
+        theClockControl.adjustTime(seconds);
         oldIndexSec = indexSec;
-        displayUnit(12,1);
-        displayUnit(0);
+        if(debug2) displayUnit(10);
+        //if(debug2) displayUnit(0);
 
         // manage validity of time set by initCountDownValidTime
         if (countDownValidTime > 0) countDownValidTime -= 1;
@@ -606,24 +751,30 @@ void loop() {
         int durDownMili = cMili - startDown;
         const int margin = 200; //  margin ms
         const int avDur = 150; //  average duration pulse ms
-        // detect large gap for end of DCF77 minute cycle
+        // detect large gap for end of DCF77 minute cycle : 2000 ms (no pulse at second 59)
         const int mi = 2000 - avDur - margin;
         const int ma = 2000 - avDur + margin;
         if (durDownMili > mi && durDownMili < ma) {
           const int deltaDuration = durDownMili - 2000;
           const size_t pointerInArrayMinus = (indexSec + 59) % 60;
           valueIndexSec[pointerInArrayMinus] = 3;
-          displayUnit(3,1);
+          if(debug2) displayUnit(4);
 
           point_to_start = pointerInArrayMinus;
 
           if (areAllOK()) {
 
             firstSettingTime = false;
-
-            storeTime();
+            tmElements_t tm;
+            tm.Year = CalendarYrToTm(2026);
+            tm.Month = DCF77_getMonth() - 1; // jan = 0;
+            tm.Day = DCF77_getDayM();
+            tm.Hour = DCF77_getHour();
+            tm.Minute = DCF77_getMin();
+            tm.Second = 0;
+            theClockControl.storeTime(tm);
             countDownValidTime = initCountDownValidTime;
-            displayUnit(6, 1);
+            if(debug2) displayUnit(1);
 
             DBG_PRINT("Set : ");
             printTime();
@@ -677,12 +828,12 @@ void loop() {
             int deltaDUR = 0;
             String pulse = "";
             if (durUpMili < 150) { // short pulse
-              displayUnit(1,1);
+              if(debug2) displayUnit(8);
               valueIndexSec[indexSec] = 0;
               deltaDUR = durUpMili - 100;
               pulse = "S";
             } else {
-              displayUnit(2,1);
+              if(debug2) displayUnit(7);
               valueIndexSec[indexSec] = 1;
               deltaDUR = durUpMili - 200;
               pulse = "L";
@@ -712,6 +863,11 @@ void loop() {
         //////////// HERE go to main display
         break;
       }
+
+      time_t t = now();
+      setOutputLed(minute(t), hour(t));
+      ocDriveLowAll_fullOK();
+
     }
 
     // Test each output led
@@ -725,30 +881,23 @@ void loop() {
       }
     }
 
-    int curMin = 0;
-    int curHourtrue = 0;
     int last_sec = 0;
-    for (int loo = 0; loo < 100000000; loo ++) {
-      const int cur_sec = (millis() / 1000UL) % 60;
+    const unsigned long int numberSecondNightTime = 60 ;//12 * 60 * 60;
+    DBG_PRINTLN("starts looop2");
+    for (unsigned long int loo = 0UL; loo < numberSecondNightTime; loo ++) {
+
+      const int cur_sec = (millis() / 1000UL) % 60UL;
       if (cur_sec != last_sec) {
         last_sec = cur_sec;
-      // curMin ++;
-      // if (curMin == 60) {curMin = 0; curHourtrue++;}
-      // if (curHourtrue == 24) {curHourtrue = 0; }
+      
+        time_t t = now();
+        setOutputLed(minute(t), hour(t));
+        ocDriveLowAll();
 
-        if (countDownValidTime > 0) { // if valid
-          countDownValidTime -=1;
-          time_t t = now();
-          curMin = minute(t);
-          curHourtrue = hour(t);
-          // set status for GPIO 
-          setOutputLed(curMin, curHourtrue);
-        } else {
-          break;
-        }
-      }
-      // displays
-      ocDriveLowAll();
+        // option use countdown loop 
+        //if (countDownValidTime == 0) { break;) else (countDownValidTime -=1;)
+        //  
+     }
     }
 
     // turn off display
