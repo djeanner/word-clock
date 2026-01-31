@@ -544,8 +544,6 @@ void loop() {
     unsigned long int startDown = 0;
     unsigned long int startUp = 0;
     unsigned long int cMili = 0;
-    const unsigned long int c1000 = 1000;
-    const unsigned long int c60 = 60;
     size_t oldIndexSec = 0;
     const bool cursor_on = true;
     unsigned long int countDownValidTime = 0; // in seconds
@@ -555,11 +553,11 @@ void loop() {
       const int inVal = analogRead(RADIOINPUT);
     
       cMili = millis();
-      const unsigned long int milisOnly = (cMili % c1000);
+      const unsigned long int milisOnly = (cMili % 1000UL);
       //const size_t avDur = 150; // average duration pulse
       const size_t supForRounding = 500; // average duration pulse
       const unsigned long int substract = static_cast<unsigned long int>(supForRounding + storedUpTimes.getAverageCore());
-      const size_t indexSec = static_cast<size_t>(((cMili - substract) / c1000) % c60);
+      const size_t indexSec = static_cast<size_t>(((cMili - substract) / 1000UL) % 60UL);
 
       if (oldIndexSec != indexSec) {
         oldIndexSec = indexSec;
@@ -731,8 +729,7 @@ void loop() {
     int curHourtrue = 0;
     int last_sec = 0;
     for (int loo = 0; loo < 100000000; loo ++) {
-      const unsigned long int c1000 = 1000;
-      const int cur_sec = (millis() / c1000) % 60;
+      const int cur_sec = (millis() / 1000UL) % 60;
       if (cur_sec != last_sec) {
         last_sec = cur_sec;
       // curMin ++;
