@@ -4,12 +4,11 @@
 
 #include <time.h>
 #include <TimeLib.h>
-// ======================================================
+#include "hardware/timer.h"
+
 // SERIAL DEBUG MACROS
-// ======================================================
 
-
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output
+#define SERIAL_DEBUG 1 // <<< set to 0 to disable ALL serial output
 
 #if SERIAL_DEBUG
  #define DBG_BEGIN(x)   Serial.begin(x)
@@ -20,6 +19,34 @@
  #define DBG_PRINT(x)
  #define DBG_PRINTLN(x)
 #endif
+
+// Interrups to control led brightness without flickering
+repeating_timer_t timer10ms;
+alarm_id_t alarmID;
+// -------- interrupt function prototypes --------
+bool timer10msCallback(repeating_timer_t *rt); // 100 Hz to avoid flickering
+int64_t alarmCallback(alarm_id_t id, void *user_data);
+// -------- Interrupt callback --------
+// Called every 10 ms
+bool timer10msCallback(repeating_timer_t *rt) {
+  ocDriveLowAll_fullON();
+  // prepare follop up off...
+  const uint64_t delayMicroSeconds = 1500;
+  alarmID = add_alarm_in_us(
+    delayMicroSeconds,
+    alarmCallback,
+    NULL,
+    true               // fire even if IRQs were briefly disabled
+  );
+  return true; // keep repeating
+}
+
+// Called a few ms after timer10msCallback interrupt
+int64_t alarmCallback(alarm_id_t id, void *user_data) {
+  ocDriveLowAll_fullOFF();
+  return 0; // one-shot alarm
+}
+
 
 #define DCF77_BIT_M_    0  // 0
 #define DCF77_BIT_R_    15 // 0
@@ -106,10 +133,10 @@ private:
     int *array;
 public:
     // constructor
-    Ring(size_t size)
-        : pointer(0), maxSize(size), size(0), lastPointer(0)
+    Ring(size_t imaxSize)
+        : pointer(0), maxSize(imaxSize), size(0), lastPointer(0)
     {
-        array = new int[size];
+        array = new int[imaxSize];
     }
     // destructor
     ~Ring() {
@@ -186,10 +213,14 @@ public:
 
 };
 
-const bool debug5 = false;
-const bool debug2 = true;
+const bool debug8 = false; // text 
+//txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
+const bool debug9 = debug8; // display long and short pulses on the fly
+const bool debug5 = false; // display long pause pulses on the fly
+bool debug2 = ! debug8;// front display debugging steps
 
-Ring storedUpTimes(15);
+
+Ring storedUpTimes(50);
 
 const size_t totOutputPins = 22;
 size_t values[totOutputPins];
@@ -375,7 +406,7 @@ void ocReleaseAll() {
 int inputValue;
 
 // Drive all pins LOW (open-collector active)
-void ocDriveLowAll_fullOK() {
+void ocDriveLowAll_fullON() {
     for (size_t lo = 0; lo < totOutputPins; lo++) { 
       const size_t pin = lo;     
       if (values[pin] > 0) {
@@ -386,6 +417,12 @@ void ocDriveLowAll_fullOK() {
         //digitalWrite(pin, LOW); // dummy
       }
     }
+}
+
+void ocDriveLowAll_fullOFF() {
+    for (size_t lo = 0; lo < totOutputPins; lo++) { 
+    pinMode(lo, INPUT);   // OFF State
+  }
 }
 
 // chop led current 
@@ -451,9 +488,8 @@ int absCircularDelta(int a, int b) {
   }
 }
 
-void setOutputLed(int curMin, int curHourtrue) {
-  values[MITIS] = 1; // It is ... is always on
-
+void setOutputLed(const int curMin, const int curHourtrue, const bool writeItIs = true) {
+  values[MITIS] = writeItIs ? 1 : 0;
   int curHour= curHourtrue; // displayed 
   if (curMin > 34) curHour++;
 
@@ -496,6 +532,9 @@ void setOutputLed(int curMin, int curHourtrue) {
 }
 
 void displayUnit(int unitDigit = 0) {
+  for (size_t i = 0; i < totOutputPins; i++) {
+      values[i] = 0;
+  }
   if (unitDigit == 1) {values[H1_] = 1;}
   if (unitDigit == 2) {values[H2_] = 1;}
   if (unitDigit == 3) {values[H3_] = 1;}
@@ -508,15 +547,6 @@ void displayUnit(int unitDigit = 0) {
   if (unitDigit == 10) {values[H10] = 1;}
   if (unitDigit == 11) {values[H11] = 1;}
   if (unitDigit == 12) {values[H12] = 1;}
-
-  if (unitDigit == 0) { // clear display
-    for (size_t i = 0; i < totOutputPins; i++) {
-      values[i] = 0;
-    }
-    ocDriveLowAll(1);
-  } else {
-    ocDriveLowAll_fullOK();
-  }
   return;
 }
 
@@ -591,21 +621,20 @@ public:
     const long long secondsSinceLastTime = (long long)t - lastTime;
     //const long int secondsSinceLastTime_now = (long)tNow - lastTime;
     const bool debug3 = true;
-    if (debug3) DBG_PRINT("qualityAccept ");
-    if (debug3) {if (qualityAccept) DBG_PRINT("Y"); else DBG_PRINT("N");}
-    if (debug3) DBG_PRINT(" tested time : ");
+    if (debug3) DBG_PRINTLN("");
+    if (debug3) DBG_PRINT("Time submitted for validation ");
+    if (debug3) DBG_PRINT("Earlyer data reliable : ");
+    if (debug3) {if (qualityAccept) DBG_PRINTLN("Y"); else DBG_PRINTLN("N");}
+    if (debug3) DBG_PRINT("tested time      : ");
     if (debug3) printTime(t);
-    if (debug3) DBG_PRINT("now : ");
+    if (debug3) DBG_PRINT("now :            : ");
     if (debug3) printTime(tNow);
     if (debug3) DBG_PRINT("last stored time : ");
     if (debug3) printTime(lastTime);
-
-     
-   
+    const bool critConsistent =  (diff < 100);
     if (!qualityAccept) {
-        const bool critConsistent =  (diff < 100);
-    if (debug3) DBG_PRINT(diff);
-    if (debug3) DBG_PRINTLN(" < 100");
+      if (debug3) DBG_PRINT(diff);
+      if (debug3) DBG_PRINTLN(" < 100");
       setTime(t);
       // see if can consider switch to reliable
       if (critConsistent) {
@@ -614,9 +643,13 @@ public:
       } else {
         if (debug3) DBG_PRINTLN(" Crit failed times not consistent NOT considering time as reliable");
       }
-    } 
+    }
     // dont use else because qualityAccept changes in if
     if (qualityAccept) {
+      if (! critConsistent) {
+        if (debug3) DBG_PRINTLN(" Crit NOT OK: ignore");
+        return;
+      }
       const long long factor = 600;// 1 second per minute : 60 // 1 second ten minutes : 600 // 1 second per hour: 3600
       const long long secondSinceLastAbs = labs(secondsSinceLastTime);
       const bool critConsistent = (unsignedDiff < (secondSinceLastAbs / factor));
@@ -649,7 +682,15 @@ public:
       const long long durationOneDay = 24 * 60 * 60;
       long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - lastTime);
       if (true) {errorSecondsPerDay += getLastCorrection();}
-      if (debug3) DBG_PRINT(" errorSecondsPerDay:");
+      if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
+      if (debug3) DBG_PRINT(diff);
+      if (debug3) DBG_PRINT(" * ");
+      if (debug3) DBG_PRINT(durationOneDay);
+      if (debug3) DBG_PRINT(" / (");
+      if (debug3) DBG_PRINT(tNow);
+      if (debug3) DBG_PRINT(" - ");
+      if (debug3) DBG_PRINT(lastTime);
+      if (debug3) DBG_PRINT(" : ");
       if (debug3) DBG_PRINTLN(errorSecondsPerDay);
 
       storeDate(tNow, errorSecondsPerDay);
@@ -664,8 +705,13 @@ public:
 ClockControl theClockControl(10);
 
 void setup() {
-  // for led needs to set wifi on pi pico W
-
+  // inteerup  
+  add_repeating_timer_us(
+    -10000,                 // negative = exact interval, no drift
+    timer10msCallback,
+    NULL,
+    &timer10ms
+  );
 
   DBG_BEGIN(115200);
   delay(2000);
@@ -692,14 +738,14 @@ void setup() {
 
 void loop() {
   for (int superLoop = 0; superLoop < 100000000; superLoop ++) {
-    storedUpTimes.reset(); // assume the phase of pulses is lost. correct after minutes
-
     int previVal = 0;
     // const int numberWait = 918;
     // const int factorEndOfLine = 120;
     // int count = 0;
     unsigned long int startUp = 0;
+    unsigned long int startDown = 0;
     unsigned long int lastStartUp = 0;
+    unsigned long int lastStartDown = 0;
     unsigned long int cMili = 0;
     size_t oldIndexSec = 0;
     const bool cursor_on = true;
@@ -707,6 +753,7 @@ void loop() {
     const unsigned long int initCountDownValidTime = 30; // debug       60 * 60 * 24 * 30 ; // one month in seconds
 
     DBG_PRINTLN("starts loop1");
+    storedUpTimes.reset(); // assume the phase of pulses is lost. correct after minutes
     for (int loop1 = 0; loop1 < 100000000; loop1 ++) {
 
       // meansure DCF77 level
@@ -722,15 +769,15 @@ void loop() {
       if (oldIndexSec != indexSec) {
         theClockControl.adjustTime(seconds);
         oldIndexSec = indexSec;
-        // if (debug2) displayUnit(10);
+        if (debug2) displayUnit(10);
 
         // manage validity of time set by initCountDownValidTime
         if (countDownValidTime > 0) countDownValidTime -= 1;
         
         // dump info
         const size_t numberPerLine = cursor_on ? 6 : 60;
-        if ((indexSec % numberPerLine) == 0) {
-          if (cursor_on) DBG_PRINTLN();
+        if ((indexSec % numberPerLine) == 0 && debug8) {
+          if (cursor_on) {DBG_PRINTLN();}
           DBG_PRINT ("txt:[");
           String stringForLine = "";
           for (size_t i = 0; i < 60; i++) {
@@ -740,10 +787,12 @@ void loop() {
                 if (valueIndexSec[i] == 2) {DBG_PRINT(" "); }
                 if (valueIndexSec[i] == 3) {
                   DBG_PRINT ("£"); 
-                  const size_t store_val = point_to_start;
-                  point_to_start = (i + 0) % 60;
-                  stringForLine +=  DCF77_getString() + " ";    
-                  point_to_start = store_val;
+                  {
+                    const size_t store_val = point_to_start;
+                    point_to_start = (i + 0) % 60;
+                    stringForLine +=  DCF77_getString() + " ";    
+                    point_to_start = store_val;
+                  } 
                 }
                 if (valueIndexSec[i] == 0) {DBG_PRINT ("-");}
                 if (valueIndexSec[i] == 1) {DBG_PRINT ("+");}
@@ -761,25 +810,25 @@ void loop() {
         bool displayStrongTimeWhileReceptingSignal = false;
         if(displayStrongTimeWhileReceptingSignal) {
           time_t t = now();
-          setOutputLed(minute(t), hour(t));
-          ocDriveLowAll_fullOK();
+          setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+          ocDriveLowAll_fullON();
         }
       }
       // DOWN -> UP
       if ((inVal > 1000) && (previVal < 1000)) {
         startUp = cMili;
-        int durDownMili = cMili - lastStartUp;
+        const int durCycleMili = cMili - lastStartUp;
         const int margin = 50; //  margin ms
         // detect large gap for end of DCF77 minute cycle : 2000 ms (no pulse at second 59)
         const int mi = 2000 - margin;
         const int ma = 2000 + margin;
 
-        if (durDownMili > mi && durDownMili < ma) {
+        if (durCycleMili > mi && durCycleMili < ma) {
 
-          // const int deltaDuration = durDownMili - 2000;
+          // const int deltaDuration = durCycleMili - 2000;
           const size_t pointerInArrayMinus = (indexSec + 59) % 60;
           valueIndexSec[pointerInArrayMinus] = 3;
-          //if(debug2) displayUnit(4);
+          if(debug2) displayUnit(4);
 
           point_to_start = pointerInArrayMinus;
 
@@ -794,13 +843,15 @@ void loop() {
             tm.Minute = DCF77_getMin();
             tm.Second = 0;
             theClockControl.storeTime(tm);
+            //if (theClockControl.isReliable())
             countDownValidTime = initCountDownValidTime;
+            debug2 = false; // stop 
           } 
         }
         // detect small gaps between seconds
         const int mi2 = 1000 - margin; 
         const int ma2 = 1000 + margin;
-        if (durDownMili > mi2 && durDownMili < ma2) {
+        if (durCycleMili > mi2 && durCycleMili < ma2) {
           if (debug5) DBG_PRINT("^");
           if (debug5) DBG_PRINT(milisOnly);
           if (debug5) DBG_PRINT("<");
@@ -814,63 +865,69 @@ void loop() {
 
       // UP -> DOWN
       if ((inVal < 1000) && (previVal > 1000)) {
-        //miliStore = static_cast<int>(milisOnly);
-        int durUpMili = cMili - startUp;
-        const int delta = absCircularDelta(startUp % 1000, storedUpTimes.getAverageCore());
-        //milisOnly // storedUpTimes.getAverageCore()
 
-        // margin of 50 ms for duration and position
-        const int critDeltaPos = storedUpTimes.isFull() ? 50 : 1000; // set tight only when ring is full
-        const int critDeltaDur = 50; // if change 50, rewrite code below
-        const int mi = 100 - critDeltaDur;
-        const int ma = 200 + critDeltaDur;
-                    lastStartUp = startUp;
+        const int durCycleMili = cMili - lastStartDown;
+        const int minDurationRealPulse  =  storedUpTimes.isFull() ? 500 : 10; // not very logical
+        if (durCycleMili > minDurationRealPulse) {
+          lastStartDown = cMili;
+          startDown = cMili;
 
-        if (durUpMili >= mi && durUpMili <= ma ) {
+          //miliStore = static_cast<int>(milisOnly);
+          int durUpMili = cMili - startUp;
+          const int delta = absCircularDelta(startUp % 1000, storedUpTimes.getAverageCore());
+          //milisOnly // storedUpTimes.getAverageCore()
 
-          if (delta < critDeltaPos) {
+          // margin of 50 ms for duration and position
+          const int critDeltaPos = storedUpTimes.isFull() ? 50 : 1000; // set tight only when ring is full
+          const int critDeltaDur = 50; // if change 50, rewrite code below
+          const int mi = 100 - critDeltaDur;
+          const int ma = 200 + critDeltaDur;
 
-            // Store value
-            int deltaDUR = 0;
-            String pulse = "";
-            if (durUpMili < 150) { // short pulse
-              // if(debug2) displayUnit(8);
-              valueIndexSec[indexSec] = 0;
-              deltaDUR = durUpMili - 100;
-              pulse = "S";
+          if (durUpMili >= mi && durUpMili <= ma ) {
+            lastStartUp = startUp;
+
+            if (delta < critDeltaPos) {
+
+              // Store value
+              int deltaDUR = 0;
+              String pulse = "";
+              if (durUpMili < 150) { // short pulse
+                if(debug2) displayUnit(8);
+                valueIndexSec[indexSec] = 0;
+                deltaDUR = durUpMili - 100;
+                pulse = "S";
+              } else {
+                if(debug2) displayUnit(7);
+                valueIndexSec[indexSec] = 1;
+                deltaDUR = durUpMili - 200;
+                pulse = "L";
+              }
+              if (cursor_on) {
+                int signedDeltaStart = circularDelta(startUp % 1000, storedUpTimes.getAverageCore());
+                if (debug9) DBG_PRINT (" ");
+                if (debug9) DBG_PRINT(signedDeltaStart);
+                if (signedDeltaStart > 0)  {if (debug9) DBG_PRINT ("+");}
+                if (debug9) DBG_PRINT ("(");
+                if (debug9) DBG_PRINT(pulse);
+                if (deltaDUR > 0) { if (debug9) DBG_PRINT ("+");}
+                if (debug9) DBG_PRINT(deltaDUR);
+                if (debug9) DBG_PRINT (")");
+              }
             } else {
-              // if(debug2) displayUnit(7);
-              valueIndexSec[indexSec] = 1;
-              deltaDUR = durUpMili - 200;
-              pulse = "L";
-            }
-            if (cursor_on) {
-              int signedDeltaStart = circularDelta(startUp % 1000, storedUpTimes.getAverageCore());
-              DBG_PRINT (" ");
-              if (signedDeltaStart > 0)  DBG_PRINT ("+");
-              DBG_PRINT(signedDeltaStart);
-              DBG_PRINT ("(");
-              DBG_PRINT(pulse);
-              if (deltaDUR > 0)  DBG_PRINT ("+");
-              DBG_PRINT(deltaDUR);
-              DBG_PRINT (")");
+                if (debug9) DBG_PRINT ("X"); // wrong start
             }
           } else {
-              DBG_PRINT ("X"); // wrong start
+                if (debug9) DBG_PRINT ("x"); // wrong duration
           }
-        } else {
-              DBG_PRINT ("x"); // wrong duration
         }
         previVal = inVal;
       }
     
       digitalWrite(LEDPIN, inVal < 1000 ? LOW : HIGH);
       if (countDownValidTime > 0) {
-        //////////// HERE go to main display
+        //////////// HERE go to loop with no reception
         break;
       }
-
-    
 
     }
 
@@ -884,32 +941,27 @@ void loop() {
         ocDriveLowAll();
       }
     }
-
-    int last_sec = 0;
-    unsigned long int numberSecondStaysInLoop2 = theClockControl.isReliable() ? 10 * 60 : 60 * 60 ;//12 * 60 * 60;
-    DBG_PRINTLN("starts loop2");
+    long long last_min = 0;
+    // ignore countDownValidTime
+    unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 60 : 10;
+    DBG_PRINT("starts loop2 for ");
+    DBG_PRINT(numberMinStaysInLoop);
+    DBG_PRINTLN(" min. ");
     time_t t = now();
-    setOutputLed(minute(t), hour(t));
-    for (unsigned long int loo = 0UL; loo < 1000000000; loo ++) {
-
-      const int cur_sec = (millis() / 1000UL) % 60UL;
-      if (cur_sec != last_sec) {
-        last_sec = cur_sec;
-        numberSecondStaysInLoop2 -= 1;
-        if (numberSecondStaysInLoop2 == 0) break;
-        digitalWrite(LEDPIN, (cur_sec % 2) ? LOW : HIGH); 
-        if ((numberSecondStaysInLoop2 % 1) == 0) { // every ten seconds
-          t = now();
-          setOutputLed(minute(t), hour(t));
-        }
+    setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+    int lastMin = minute(t);
+    for (unsigned long long loo = 0UL; loo < 1000000000; loo ++) {
+      t = now();
+      int curMin = minute(t);
+      if (curMin != lastMin) {
+        lastMin = curMin;
+        numberMinStaysInLoop -= 1;
+        if (numberMinStaysInLoop <= 0) break;
+        digitalWrite(LEDPIN, ((curMin % 2) == 0) ? LOW : HIGH); 
+        setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+        sleep_ms(55000);// wait less than a minute // delay()
       }
-      ocDriveLowAll();
-      //displayUnit();
-
     }
-
-    // turn off display
-    displayUnit();
   }
 }
 
