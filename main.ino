@@ -19,6 +19,7 @@
  #define DBG_PRINT(x)
  #define DBG_PRINTLN(x)
 #endif
+enum class DCF77Bit : uint8_t;
 
 // Interrups to control led brightness without flickering
 repeating_timer_t timer10ms;
@@ -47,54 +48,67 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
   return 0; // one-shot alarm
 }
 
+//enum class DCF77Bit : uint8_t {
+//  M = 0,
+//  ZERO = 1,
+//  ONE = 2
+//};
+// DCF77Bit::ONE
+enum class DCF77Bit : uint8_t {
+  BIT_M_     = 0,   // 0
+  BIT_R_     = 15,  // 0
+  BIT_A1     = 16,
+  BIT_Z1     = 17,
+  BIT_Z2     = 18,
+  BIT_A2     = 19,
+  BIT_S_     = 20,  // 1
 
-#define DCF77_BIT_M_    0  // 0
-#define DCF77_BIT_R_    15 // 0
-#define DCF77_BIT_A1    16
-#define DCF77_BIT_Z1    17
-#define DCF77_BIT_Z2    18
-#define DCF77_BIT_A2    19
-#define DCF77_BIT_S_    20 // 1
+  MIN_1_     = 21,  // Minute code
+  MIN_2_     = 22,  // Minute code
+  MIN_4_     = 23,  // Minute code
+  MIN_8_     = 24,  // Minute code
+  MIN_10     = 25,  // Minute code
+  MIN_20     = 26,  // Minute code
+  MIN_40     = 27,  // Minute code
+  P1         = 28,  // parity DCF77_getParity(DCF77Bit::MIN_1, DCF77_MIN_40)
 
-#define DCF77_MIN_1_    21 // Minute code
-#define DCF77_MIN_2_    22 // Minute code
-#define DCF77_MIN_4_    23 // Minute code
-#define DCF77_MIN_8_    24 // Minute code
-#define DCF77_MIN_10    25 // Minute code
-#define DCF77_MIN_20    26 // Minute code
-#define DCF77_MIN_40    27 // Minute code
-#define DCF77_P1        28 // parity DCF77_getParity(DCF77_MIN_1, DCF77_MIN_40)
+  HOUR_1_    = 29,  // Hour code
+  HOUR_2_    = 30,  // Hour code
+  HOUR_4_    = 31,  // Hour code
+  HOUR_8_    = 32,  // Hour code
+  HOUR_10    = 33,  // Hour code
+  HOUR_20    = 34,  // Hour code
+  P2         = 35,  // parity DCF77_getParity(DCF77Bit::HOUR_1, DCF77_HOUR_20)
 
-#define DCF77_HOUR_1_   29 // Hour code
-#define DCF77_HOUR_2_   30 // Hour code
-#define DCF77_HOUR_4_   31 // Hour code
-#define DCF77_HOUR_8_   32 // Hour code
-#define DCF77_HOUR_10   33 // Hour code
-#define DCF77_HOUR_20   34 // Hour code
-#define DCF77_P2        35 // parity DCF77_getParity(DCF77_HOUR_1, DCF77_HOUR_20)
-#define DCF77_DAYM_1_    36 // Day month code
-#define DCF77_DAYM_2_    37 // Day month code
-#define DCF77_DAYM_4_    38 // Day month code
-#define DCF77_DAYM_8_    39 // Day month code
-#define DCF77_DAYM_10   40 // Day month code
-#define DCF77_DAYM_20   41 // Day month code
-#define DCF77_DAYW_1_    42 // Day week code
-#define DCF77_DAYW_2_    43 // Day week code
-#define DCF77_DAYW_4_    44 // Day week code
-#define DCF77_MONTH_1_   45 // Month code
-#define DCF77_MONTH_2_   46 // Month code
-#define DCF77_MONTH_4_   47 // Month code
-#define DCF77_MONTH_8_   48 // Month code
-#define DCF77_MONTH_10  49 // Month code
-#define DCF77_YEAR_1_  50 // Year code
-#define DCF77_YEAR_2_  51 // Year code
-#define DCF77_YEAR_4_  52 // Year code
-#define DCF77_YEAR_8_  53 // Year code
-#define DCF77_YEAR_10 54 // Year code
-#define DCF77_YEAR_20 55 // Year code
-#define DCF77_YEAR_40 56 // Year code
-#define DCF77_YEAR_80 57 // Year code
-#define DCF77_P3      58 // parity DCF77_getParity(DCF77_YEAR_1, DCF77_YEAR_80)
+  DAYM_1_    = 36,  // Day month code
+  DAYM_2_    = 37,  // Day month code
+  DAYM_4_    = 38,  // Day month code
+  DAYM_8_    = 39,  // Day month code
+  DAYM_10    = 40,  // Day month code
+  DAYM_20    = 41,  // Day month code
+
+  DAYW_1_    = 42,  // Day week code
+  DAYW_2_    = 43,  // Day week code
+  DAYW_4_    = 44,  // Day week code
+
+  MONTH_1_   = 45,  // Month code
+  MONTH_2_   = 46,  // Month code
+  MONTH_4_   = 47,  // Month code
+  MONTH_8_   = 48,  // Month code
+  MONTH_10   = 49,  // Month code
+
+  YEAR_1_    = 50,  // Year code
+  YEAR_2_    = 51,  // Year code
+  YEAR_4_    = 52,  // Year code
+  YEAR_8_    = 53,  // Year code
+  YEAR_10    = 54,  // Year code
+  YEAR_20    = 55,  // Year code
+  YEAR_40    = 56,  // Year code
+  YEAR_80    = 57,  // Year code
+
+  P3         = 58   // parity DCF77_getParity(DCF77Bit::YEAR_1, DCF77_YEAR_80)
+};
+
 
 #define H1_ 0
 #define H2_ 1
@@ -217,8 +231,8 @@ const bool debug8 = false; // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8; // display long and short pulses on the fly
 const bool debug5 = false; // display long pause pulses on the fly
-bool debug2 = ! debug8;// front display debugging steps
-
+bool debug2 = ! debug8; // front display debugging steps
+const bool debug3 = true; // dump info about the validation process of times
 
 Ring storedUpTimes(50);
 
@@ -230,58 +244,64 @@ bool firstSettingTime = true;
 int valueIndexSec[60];
 size_t point_to_start = 0;
 // int miliStore = 0; // for debuf of moment of second
-inline bool DCF77isBitUnknown(size_t bitNumber) {
+inline bool DCF77isBitUnknown(DCF77Bit bit) {
   // return true if unknown (2)
+  size_t bitNumber = static_cast<size_t>(bit);
   return (valueIndexSec[(bitNumber + point_to_start + 1) % 60] == 2);
 }
-inline int getDCF77bit(size_t bitNumber) {
-  // return true if unknown (2)
+
+int getDCF77bit(DCF77Bit bit) {
+  size_t bitNumber = static_cast<size_t>(bit);
   return (valueIndexSec[(bitNumber + point_to_start + 1) % 60] == 0) ? 0 : 1;
 }
 
-int DCF77_getParity(int first, int last) {
+int DCF77_getParity(DCF77Bit bit1, DCF77Bit bit2) {
+    size_t first = static_cast<size_t>(bit1);
+    size_t last = static_cast<size_t>(bit2);
+
   // 1 if sum of 1's is odd
   int sum = 0;
-  for (int i = first; i <= last; i++) {
-    if (getDCF77bit(i)) sum ++;
-    if (DCF77isBitUnknown(i)) return 99;
+  for (size_t i = first; i <= last; i++) {
+    DCF77Bit iZ = static_cast<DCF77Bit>(i);
+    if (getDCF77bit(iZ)) sum ++;
+    if (DCF77isBitUnknown(iZ)) return 99;
   }
   return sum % 2; //1 of sum is odd
 }
 
 int DCF77_getHour() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_HOUR_1_) * 1;
-  retVal += getDCF77bit(DCF77_HOUR_2_) * 2;
-  retVal += getDCF77bit(DCF77_HOUR_4_) * 4;
-  retVal += getDCF77bit(DCF77_HOUR_8_) * 8;
-  retVal += getDCF77bit(DCF77_HOUR_10) * 10;
-  retVal += getDCF77bit(DCF77_HOUR_20) * 20;
+  retVal += getDCF77bit(DCF77Bit::HOUR_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::HOUR_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::HOUR_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::HOUR_8_) * 8;
+  retVal += getDCF77bit(DCF77Bit::HOUR_10) * 10;
+  retVal += getDCF77bit(DCF77Bit::HOUR_20) * 20;
   return retVal;
 }
 
 int DCF77_getMin() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_MIN_1_) * 1;
-  retVal += getDCF77bit(DCF77_MIN_2_) * 2;
-  retVal += getDCF77bit(DCF77_MIN_4_) * 4;
-  retVal += getDCF77bit(DCF77_MIN_8_) * 8;
-  retVal += getDCF77bit(DCF77_MIN_10) * 10;
-  retVal += getDCF77bit(DCF77_MIN_20) * 20;
-  retVal += getDCF77bit(DCF77_MIN_40) * 40;
+  retVal += getDCF77bit(DCF77Bit::MIN_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::MIN_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::MIN_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::MIN_8_) * 8;
+  retVal += getDCF77bit(DCF77Bit::MIN_10) * 10;
+  retVal += getDCF77bit(DCF77Bit::MIN_20) * 20;
+  retVal += getDCF77bit(DCF77Bit::MIN_40) * 40;
   return retVal;
 }
 
 int DCF77_getYear() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_YEAR_1_) * 1;
-  retVal += getDCF77bit(DCF77_YEAR_2_) * 2;
-  retVal += getDCF77bit(DCF77_YEAR_4_) * 4;
-  retVal += getDCF77bit(DCF77_YEAR_8_) * 8;
-  retVal += getDCF77bit(DCF77_YEAR_10) * 10;
-  retVal += getDCF77bit(DCF77_YEAR_20) * 20;
-  retVal += getDCF77bit(DCF77_YEAR_40) * 40;
-  retVal += getDCF77bit(DCF77_YEAR_80) * 80;
+  retVal += getDCF77bit(DCF77Bit::YEAR_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::YEAR_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::YEAR_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::YEAR_8_) * 8;
+  retVal += getDCF77bit(DCF77Bit::YEAR_10) * 10;
+  retVal += getDCF77bit(DCF77Bit::YEAR_20) * 20;
+  retVal += getDCF77bit(DCF77Bit::YEAR_40) * 40;
+  retVal += getDCF77bit(DCF77Bit::YEAR_80) * 80;
   return retVal;
 }
 String DCF77_getMonthString() {
@@ -302,11 +322,11 @@ String DCF77_getMonthString() {
 }
 int DCF77_getMonth() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_MONTH_1_) * 1;
-  retVal += getDCF77bit(DCF77_MONTH_2_) * 2;
-  retVal += getDCF77bit(DCF77_MONTH_4_) * 4;
-  retVal += getDCF77bit(DCF77_MONTH_8_) * 8;
-  retVal += getDCF77bit(DCF77_MONTH_10) * 10;
+  retVal += getDCF77bit(DCF77Bit::MONTH_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::MONTH_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::MONTH_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::MONTH_8_) * 8;
+  retVal += getDCF77bit(DCF77Bit::MONTH_10) * 10;
   return retVal;
 }
 String DCF77_getDayWString() {
@@ -324,40 +344,40 @@ String DCF77_getDayWString() {
 }
 int DCF77_getDayM() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_DAYM_1_) * 1;
-  retVal += getDCF77bit(DCF77_DAYM_2_) * 2;
-  retVal += getDCF77bit(DCF77_DAYM_4_) * 4;
-  retVal += getDCF77bit(DCF77_DAYM_8_) * 8;
-  retVal += getDCF77bit(DCF77_DAYM_10) * 10;
-  retVal += getDCF77bit(DCF77_DAYM_20) * 20;
+  retVal += getDCF77bit(DCF77Bit::DAYM_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::DAYM_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::DAYM_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::DAYM_8_) * 8;
+  retVal += getDCF77bit(DCF77Bit::DAYM_10) * 10;
+  retVal += getDCF77bit(DCF77Bit::DAYM_20) * 20;
   return retVal;
 }
 
 int DCF77_getDayW() {
   int retVal = 0;
-  retVal += getDCF77bit(DCF77_DAYW_1_) * 1;
-  retVal += getDCF77bit(DCF77_DAYW_2_) * 2;
-  retVal += getDCF77bit(DCF77_DAYW_4_) * 4;
+  retVal += getDCF77bit(DCF77Bit::DAYW_1_) * 1;
+  retVal += getDCF77bit(DCF77Bit::DAYW_2_) * 2;
+  retVal += getDCF77bit(DCF77Bit::DAYW_4_) * 4;
   return retVal;
 }
 
 bool DCF77isM_OK() { // always false
-  return ( !(getDCF77bit(DCF77_BIT_M_)) && (! DCF77isBitUnknown(DCF77_BIT_M_)));
+  return ( !(getDCF77bit(DCF77Bit::BIT_M_)) && (! DCF77isBitUnknown(DCF77Bit::BIT_M_)));
 }
 bool DCF77isR_OK() { // always false
-  return ( !(getDCF77bit(DCF77_BIT_R_)) && (! DCF77isBitUnknown(DCF77_BIT_R_)));
+  return ( !(getDCF77bit(DCF77Bit::BIT_R_)) && (! DCF77isBitUnknown(DCF77Bit::BIT_R_)));
 }
 bool DCF77isS_OK() { // always true
-  return (  (getDCF77bit(DCF77_BIT_S_)) && (! DCF77isBitUnknown(DCF77_BIT_S_)));
+  return (  (getDCF77bit(DCF77Bit::BIT_S_)) && (! DCF77isBitUnknown(DCF77Bit::BIT_S_)));
 }
 bool DCF77isParityMinOK() {
-  return (getDCF77bit(DCF77_P1) == DCF77_getParity(DCF77_MIN_1_, DCF77_MIN_40));
+  return (getDCF77bit(DCF77Bit::P1) == DCF77_getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40));
 }
 bool DCF77isParityHourOK() {
-  return (getDCF77bit(DCF77_P2) == DCF77_getParity(DCF77_HOUR_1_, DCF77_HOUR_20)) ;
+  return (getDCF77bit(DCF77Bit::P2) == DCF77_getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) ;
 }
 bool DCF77isParityYearOK() { // DCF77_YEAR_1 not working wrong paraity 
-  return (getDCF77bit(DCF77_P3) == DCF77_getParity(DCF77_MONTH_1_, DCF77_YEAR_80));
+  return (getDCF77bit(DCF77Bit::P3) == DCF77_getParity(DCF77Bit::MONTH_1_, DCF77Bit::YEAR_80));
 }
 
 bool areAllOK() {
@@ -620,7 +640,6 @@ public:
     const time_t lastTime = getLastTime();
     const long long secondsSinceLastTime = (long long)t - lastTime;
     //const long int secondsSinceLastTime_now = (long)tNow - lastTime;
-    const bool debug3 = true;
     if (debug3) DBG_PRINTLN("");
     if (debug3) DBG_PRINT("Time submitted for validation ");
     if (debug3) DBG_PRINT("Earlyer data reliable : ");
@@ -638,16 +657,16 @@ public:
       setTime(t);
       // see if can consider switch to reliable
       if (critConsistent) {
-        if (debug3) DBG_PRINTLN(" Crit OK: consistent switch to reliable");
+        if (debug3) DBG_PRINTLN("Crit OK: Switch to reliable");
           qualityAccept = true;
       } else {
-        if (debug3) DBG_PRINTLN(" Crit failed times not consistent NOT considering time as reliable");
+        if (debug3) DBG_PRINTLN("Crit failed: Time is not consistent (normal if first call). It is not considered as reliable");
       }
     }
     // dont use else because qualityAccept changes in if
     if (qualityAccept) {
       if (! critConsistent) {
-        if (debug3) DBG_PRINTLN(" Crit NOT OK: ignore");
+        if (debug3) DBG_PRINTLN(" Crit failed: Time is not consistent: ignored");
         return;
       }
       const long long factor = 600;// 1 second per minute : 60 // 1 second ten minutes : 600 // 1 second per hour: 3600
@@ -712,7 +731,7 @@ void setup() {
     NULL,
     &timer10ms
   );
-
+  if(debug2) displayUnit(1);
   DBG_BEGIN(115200);
   delay(2000);
   analogReadResolution(12);
@@ -732,11 +751,13 @@ void setup() {
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
   DBG_PRINTLN("End setup");
+  if(debug2) displayUnit(2);
 
 }
 
 
 void loop() {
+  if(debug2) displayUnit(3);
   for (int superLoop = 0; superLoop < 100000000; superLoop ++) {
     int previVal = 0;
     // const int numberWait = 918;
