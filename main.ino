@@ -650,7 +650,7 @@ public:
     if (debug3) printTime(tNow);
     if (debug3) DBG_PRINT("last stored time : ");
     if (debug3) printTime(lastTime);
-    const bool critConsistent =  (diff < 100);
+    const bool critConsistent =  (unsignedDiff < 100);
     if (!qualityAccept) {
       if (debug3) DBG_PRINT(diff);
       if (debug3) DBG_PRINTLN(" < 100");
