@@ -137,41 +137,30 @@ enum class WordGP : uint8_t {
   RADIOINPUT = 28,  // GP28 A2
 };
 
+/// @brief save integers and take average value ingoring smallest and largest Used for start of pulses
 class Ring {
-private:
-  size_t pointer;
-  const size_t maxSize;
-  size_t size;
-  size_t lastPointer;
-  int *array;
 public:
   // constructor
   Ring(size_t imaxSize)
     : pointer(0), maxSize(imaxSize), size(0), lastPointer(0) {
     array = new int[imaxSize];
   }
+  
   // destructor
   ~Ring() {
     delete[] array;
   }
-  int getSize() const {
-    return size;
-  }
+
   void reset() {
     size = 0;
     pointer = 0;
     lastPointer = 0;
   }
+
   bool isFull() {
     return size == maxSize;
   }
-  int getValue(size_t item) const {
-    if (item >= size) return 0;  // or error
-    return array[item];
-  }
-  int getLast() const {
-    return array[lastPointer];
-  }
+
   void push(int input) {
     array[pointer] = input;
     lastPointer = pointer;
@@ -179,6 +168,7 @@ public:
     if (pointer == maxSize) pointer = 0;
     if (size < maxSize) size++;
   }
+
   int getAverageCore() const {
     if (size == 0) return 0;
 
@@ -211,6 +201,7 @@ public:
     if (count == 0) return -1;
     return sum / count;
   }
+
   String dump() {
     String retString = "{";
     for (size_t i = 0; i < size; i++) {
@@ -222,6 +213,22 @@ public:
     retString += "}";
     return retString;
   }
+
+  private:
+  size_t pointer;
+  const size_t maxSize;
+  size_t size;
+  size_t lastPointer;
+  int *array;
+
+  int getValue(size_t item) const {
+    if (item >= size) return 0;  // or error
+    return array[item];
+  }
+
+
+
+
 };
 
 const bool debug8 = false;  // text
@@ -230,13 +237,12 @@ const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
 bool debug2 = ! debug8;      // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
-Ring storedUpTimes(50);
+
+
+Ring storedDCF77upPulsesTimes(50);
 
 const size_t totOutputPins = 22;
 size_t values[totOutputPins];
-
-
-
 
 class DCF77Decoder {
 public:
@@ -440,29 +446,10 @@ private:
 };
 
 bool firstSettingTime = true;
-// DCF77 management
-//int valueIndexSec[60]; // DEL
-//size_t point_to_start = 0; // DEL
-
-// int miliStore = 0; // for debuf of moment of second
-
-// Release all pins (Hi-Z, no pull)
-
-
-
-
-
-
-void ocReleaseAll() {
-  for (size_t lo = 0; lo < totOutputPins; lo++) {
-    pinMode(lo, INPUT);  // no pull
-  }
-}
-
 int inputValue;
 
-// Drive all pins LOW (open-collector active)
-void ocDriveLowAll_fullON() {
+// Drive all pins LOW (open-collector active) output used as mosfet. Use INPUT mode as low states output
+void ocDriveLowAll_fullON() { // called by interrupt
   for (size_t lo = 0; lo < totOutputPins; lo++) {
     const size_t pin = lo;
     if (values[pin] > 0) {
@@ -475,14 +462,28 @@ void ocDriveLowAll_fullON() {
   }
 }
 
-void ocDriveLowAll_fullOFF() {
+void ocDriveLowAll_fullOFF() {  // called by interrupt
   for (size_t lo = 0; lo < totOutputPins; lo++) {
     pinMode(lo, INPUT);  // OFF State
   }
 }
 
-// chop led current
-void ocDriveLowAll(size_t cycles = 10) {
+void testLed() {
+      for (size_t p = 0; p < totOutputPins; p++) {
+        for (size_t lo = 0; lo < totOutputPins; lo++) {
+          const size_t pin = lo;
+          if (lo == p) {
+            dcf77.setRaw(pin, 1);//[pin] = 1;
+          } else {
+            dcf77.setRaw(pin, 0);//[pin] = 0;
+          }
+        }
+        delay(1000);
+      }
+    }
+
+// chop led current obsolete
+void ocDriveWithoutInterrupt(size_t cycles = 10) {
   for (size_t t = 0; t < cycles; t++) {
     for (size_t lo = 0; lo < totOutputPins; lo++) {
       pinMode(lo, INPUT);  // OFF State
@@ -544,7 +545,7 @@ int absCircularDelta(int a, int b) {
   }
 }
 
-void setOutputLed(const int curMin, const int curHourtrue, const bool writeItIs = true) {
+void setWordClock(const int curMin, const int curHourtrue, const bool writeItIs = true) {
   values[(size_t)WordGP::MITIS] = writeItIs ? 1 : 0;
   int curHour = curHourtrue;  // displayed
   if (curMin > 34) curHour++;
@@ -610,7 +611,7 @@ void setOutputLed(const int curMin, const int curHourtrue, const bool writeItIs 
   // if ((curHourtrue < 12) || (curHourtrue == 24)) {values[AM] = 1; values[PM] = 0;} else {values[AM] = 0;values[PM] = 1;}
 }
 
-void displayUnit(int unitDigit = 0) {
+void debugSetHoursLeds(int unitDigit = 0) {
   for (size_t i = 0; i < totOutputPins; i++) {
     values[i] = 0;
   }
@@ -799,14 +800,19 @@ void setup() {
     timer10msCallback,
     NULL,
     &timer10ms);
-  if (debug2) displayUnit(1);
+  if (debug2) debugSetHoursLeds(1);
+
   DBG_BEGIN(115200);
   delay(2000);
+
   analogReadResolution(12);
+
   DBG_PRINT("DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
+
   // Start with everything released
-  ocReleaseAll();
+  ocDriveLowAll_fullOFF();
+
   for (size_t lo = 0; lo < totOutputPins; lo++) {
     const size_t pin = lo;
     values[pin] = 0;
@@ -817,12 +823,12 @@ void setup() {
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
   DBG_PRINTLN("End setup");
-  if (debug2) displayUnit(2);
+  if (debug2) debugSetHoursLeds(2);
 }
 
 
 void loop() {
-  if (debug2) displayUnit(3);
+  if (debug2) debugSetHoursLeds(3);
   for (int superLoop = 0; superLoop < 100000000; superLoop++) {
     int previVal = 0;
     // const int numberWait = 918;
@@ -839,7 +845,7 @@ void loop() {
     const unsigned long int initCountDownValidTime = 30;  // debug       60 * 60 * 24 * 30 ; // one month in seconds
 
     DBG_PRINTLN("starts loop1");
-    storedUpTimes.reset();  // assume the phase of pulses is lost. correct after minutes
+    storedDCF77upPulsesTimes.reset();  // assume the phase of pulses is lost. correct after minutes
     for (int loop1 = 0; loop1 < 100000000; loop1++) {
 
       // meansure DCF77 level
@@ -848,14 +854,14 @@ void loop() {
       const unsigned long int milisOnly = (cMili % 1000UL);
       //const size_t avDur = 150; // average duration pulse
       const size_t supForRounding = 500;  // average duration pulse
-      const unsigned long int substract = static_cast<unsigned long int>(supForRounding + storedUpTimes.getAverageCore());
+      const unsigned long int substract = static_cast<unsigned long int>(supForRounding + storedDCF77upPulsesTimes.getAverageCore());
       const long seconds = (cMili - substract) / 1000L;
       const size_t indexSec = static_cast<size_t>(((cMili - substract) / 1000UL) % 60UL);
 
       if (oldIndexSec != indexSec) {
         theClockControl.adjustTime(seconds);
         oldIndexSec = indexSec;
-        if (debug2) displayUnit(10);
+        if (debug2) debugSetHoursLeds(10);
 
         // manage validity of time set by initCountDownValidTime
         if (countDownValidTime > 0) countDownValidTime -= 1;
@@ -886,9 +892,9 @@ void loop() {
             }
           }
           DBG_PRINT("],");
-          if (storedUpTimes.isFull()) { DBG_PRINT("L"); }
+          if (storedDCF77upPulsesTimes.isFull()) { DBG_PRINT("L"); }
           DBG_PRINT("ms:");
-          DBG_PRINT(storedUpTimes.getAverageCore());  // miliStore
+          DBG_PRINT(storedDCF77upPulsesTimes.getAverageCore());  // miliStore
           DBG_PRINT(", ");
           DBG_PRINTLN(stringForLine);
         }
@@ -897,7 +903,7 @@ void loop() {
         bool displayStrongTimeWhileReceptingSignal = false;
         if (displayStrongTimeWhileReceptingSignal) {
           time_t t = now();
-          setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+          setWordClock(minute(t), hour(t), theClockControl.isReliable());
           ocDriveLowAll_fullON();
         }
       }
@@ -915,7 +921,7 @@ void loop() {
           const size_t pointerInArrayMinus = (indexSec + 59) % 60;
           dcf77.setRaw(pointerInArrayMinus, 3);
 
-          if (debug2) displayUnit(4);
+          if (debug2) debugSetHoursLeds(4);
           dcf77.setStart(pointerInArrayMinus);
 
           if (dcf77.areAllOK()) {
@@ -941,9 +947,9 @@ void loop() {
           if (debug5) DBG_PRINT("^");
           if (debug5) DBG_PRINT(milisOnly);
           if (debug5) DBG_PRINT("<");
-          storedUpTimes.push(milisOnly);
-          //DBG_PRINT(storedUpTimes.dump());
-          if (debug5) DBG_PRINT(storedUpTimes.getAverageCore());
+          storedDCF77upPulsesTimes.push(milisOnly);
+          //DBG_PRINT(storedDCF77upPulsesTimes.dump());
+          if (debug5) DBG_PRINT(storedDCF77upPulsesTimes.getAverageCore());
           if (debug5) DBG_PRINT(">");
         }
         previVal = inVal;
@@ -953,18 +959,18 @@ void loop() {
       if ((inVal < 1000) && (previVal > 1000)) {
 
         const int durCycleMili = cMili - lastStartDown;
-        const int minDurationRealPulse = storedUpTimes.isFull() ? 500 : 10;  // not very logical
+        const int minDurationRealPulse = storedDCF77upPulsesTimes.isFull() ? 500 : 10;  // not very logical
         if (durCycleMili > minDurationRealPulse) {
           lastStartDown = cMili;
           startDown = cMili;
 
           //miliStore = static_cast<int>(milisOnly);
           int durUpMili = cMili - startUp;
-          const int delta = absCircularDelta(startUp % 1000, storedUpTimes.getAverageCore());
-          //milisOnly // storedUpTimes.getAverageCore()
+          const int delta = absCircularDelta(startUp % 1000, storedDCF77upPulsesTimes.getAverageCore());
+          //milisOnly // storedDCF77upPulsesTimes.getAverageCore()
 
           // margin of 50 ms for duration and position
-          const int critDeltaPos = storedUpTimes.isFull() ? 50 : 1000;  // set tight only when ring is full
+          const int critDeltaPos = storedDCF77upPulsesTimes.isFull() ? 50 : 1000;  // set tight only when ring is full
           const int critDeltaDur = 50;                                  // if change 50, rewrite code below
           const int mi = 100 - critDeltaDur;
           const int ma = 200 + critDeltaDur;
@@ -978,21 +984,21 @@ void loop() {
               int deltaDUR = 0;
               String pulse = "";
               if (durUpMili < 150) {  // short pulse
-                if (debug2) displayUnit(8);
+                if (debug2) debugSetHoursLeds(8);
                 //valueIndexSec[indexSec] = 0; DEL
                 dcf77.setRaw(indexSec, 0);
 
                 deltaDUR = durUpMili - 100;
                 pulse = "S";
               } else {
-                if (debug2) displayUnit(7);
+                if (debug2) debugSetHoursLeds(7);
                 dcf77.setRaw(indexSec, 1);
                 //valueIndexSec[indexSec] = 1; DEL
                 deltaDUR = durUpMili - 200;
                 pulse = "L";
               }
               if (cursor_on) {
-                int signedDeltaStart = circularDelta(startUp % 1000, storedUpTimes.getAverageCore());
+                int signedDeltaStart = circularDelta(startUp % 1000, storedDCF77upPulsesTimes.getAverageCore());
                 if (debug9) DBG_PRINT(" ");
                 if (debug9) DBG_PRINT(signedDeltaStart);
                 if (signedDeltaStart > 0) {
@@ -1025,19 +1031,9 @@ void loop() {
 
     // Test each output led
     const bool testEachLedFirst = false;
-    if (testEachLedFirst) {
-      for (size_t p = 0; p < totOutputPins; p++) {
-        for (size_t lo = 0; lo < totOutputPins; lo++) {
-          const size_t pin = lo;
-          if (lo == p) {
-            dcf77.setRaw(pin, 1);//[pin] = 1;
-          } else {
-            dcf77.setRaw(pin, 0);//[pin] = 0;
-          }
-        }
-        ocDriveLowAll();
-      }
-    }
+    
+    if (testEachLedFirst) {testLed();}
+    
     long long last_min = 0;
     // ignore countDownValidTime
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 60 : 10;
@@ -1045,7 +1041,7 @@ void loop() {
     DBG_PRINT(numberMinStaysInLoop);
     DBG_PRINTLN(" min. ");
     time_t t = now();
-    setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+    setWordClock(minute(t), hour(t), theClockControl.isReliable());
     int lastMin = minute(t);
     for (unsigned long long loo = 0UL; loo < 1000000000; loo++) {
       t = now();
@@ -1053,7 +1049,7 @@ void loop() {
       if (curMin != lastMin) {
         lastMin = curMin;
         digitalWrite(LEDPIN, ((curMin % 2) == 0) ? LOW : HIGH);
-        setOutputLed(minute(t), hour(t), theClockControl.isReliable());
+        setWordClock(minute(t), hour(t), theClockControl.isReliable());
         numberMinStaysInLoop -= 1;
         if (numberMinStaysInLoop <= 0) break;
         sleep_ms(55000);  // wait less than a minute // delay()
