@@ -8,7 +8,8 @@
 
 // SERIAL DEBUG MACROS
 
-#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output
+#define MINVAL_ANTENNA 500
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output
 
 #if SERIAL_DEBUG
 #define DBG_BEGIN(x) Serial.begin(x)
@@ -27,9 +28,11 @@ class DCF77Decoder;
 // Interrups to control led brightness without flickering
 repeating_timer_t timer10ms;
 alarm_id_t alarmID;
+
 // -------- interrupt function prototypes --------
 bool timer10msCallback(repeating_timer_t *rt);  // 100 Hz to avoid flickering
 int64_t alarmCallback(alarm_id_t id, void *user_data);
+
 // -------- Interrupt callback --------
 // Called every 10 ms
 bool timer10msCallback(repeating_timer_t *rt) {
@@ -50,7 +53,6 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
   ocDriveLowAll_fullOFF();
   return 0;  // one-shot alarm
 }
-
 
 enum class DCF77Bit : uint8_t {
   BIT_M_ = 0,   // 0
@@ -137,6 +139,7 @@ enum class WordGP : uint8_t {
   RADIOINPUT = 28,  // GP28 A2
 };
 
+
 /// @brief save integers and take average value ingoring smallest and largest Used for start of pulses
 class Ring {
 public:
@@ -145,7 +148,7 @@ public:
     : pointer(0), maxSize(imaxSize), size(0), lastPointer(0) {
     array = new int[imaxSize];
   }
-  
+
   // destructor
   ~Ring() {
     delete[] array;
@@ -214,7 +217,7 @@ public:
     return retString;
   }
 
-  private:
+private:
   size_t pointer;
   const size_t maxSize;
   size_t size;
@@ -225,17 +228,13 @@ public:
     if (item >= size) return 0;  // or error
     return array[item];
   }
-
-
-
-
 };
 
 const bool debug8 = false;  // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
-bool debug2 = ! debug8;      // front display debugging steps
+bool debug2 = !debug8;       // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
 
 
@@ -297,7 +296,7 @@ public:
            + getBit(DCF77Bit::HOUR_10) * 10
            + getBit(DCF77Bit::HOUR_20) * 20;
   }
- int getMin() const {
+  int getMin() const {
     return getBit(DCF77Bit::MIN_1_) * 1
            + getBit(DCF77Bit::MIN_2_) * 2
            + getBit(DCF77Bit::MIN_4_) * 4
@@ -306,8 +305,8 @@ public:
            + getBit(DCF77Bit::MIN_20) * 20
            + getBit(DCF77Bit::MIN_40) * 40;
   }
- 
-int getYear() const {
+
+  int getYear() const {
     return getBit(DCF77Bit::YEAR_1_) * 1
            + getBit(DCF77Bit::YEAR_2_) * 2
            + getBit(DCF77Bit::YEAR_4_) * 4
@@ -317,40 +316,40 @@ int getYear() const {
            + getBit(DCF77Bit::YEAR_40) * 40
            + getBit(DCF77Bit::YEAR_80) * 80;
   }
- 
-String getMonthString() {
-  const int month = getMonth();
-  if (month == 1) return String("Jan");
-  if (month == 2) return String("Feb");
-  if (month == 3) return String("Mar");
-  if (month == 4) return String("Apr");
-  if (month == 5) return String("May");
-  if (month == 6) return String("Jun");
-  if (month == 7) return String("Jul");
-  if (month == 8) return String("Aug");
-  if (month == 9) return String("Sep");
-  if (month == 10) return String("Oct");
-  if (month == 11) return String("Nov");
-  if (month == 12) return String("Dec");
-  return String("XXX");
-}
 
-String getDayWString() {
-  const int day = getDayW();
-  if (day == 0) return String("Sun");
-  if (day == 1) return String("Mon");
-  if (day == 2) return String("Tue");
-  if (day == 3) return String("Wed");
-  if (day == 4) return String("Thu");
-  if (day == 5) return String("Fri");
-  if (day == 6) return String("Sat");
-  if (day == 7) return String("Sun");
-  if (day == 8) return String("DX8");
-  return "DXX";
-}
+  String getMonthString() {
+    const int month = getMonth();
+    if (month == 1) return String("Jan");
+    if (month == 2) return String("Feb");
+    if (month == 3) return String("Mar");
+    if (month == 4) return String("Apr");
+    if (month == 5) return String("May");
+    if (month == 6) return String("Jun");
+    if (month == 7) return String("Jul");
+    if (month == 8) return String("Aug");
+    if (month == 9) return String("Sep");
+    if (month == 10) return String("Oct");
+    if (month == 11) return String("Nov");
+    if (month == 12) return String("Dec");
+    return String("XXX");
+  }
+
+  String getDayWString() {
+    const int day = getDayW();
+    if (day == 0) return String("Sun");
+    if (day == 1) return String("Mon");
+    if (day == 2) return String("Tue");
+    if (day == 3) return String("Wed");
+    if (day == 4) return String("Thu");
+    if (day == 5) return String("Fri");
+    if (day == 6) return String("Sat");
+    if (day == 7) return String("Sun");
+    if (day == 8) return String("DX8");
+    return "DXX";
+  }
 
 
-int getDayM() const {
+  int getDayM() const {
     return getBit(DCF77Bit::DAYM_1_) * 1
            + getBit(DCF77Bit::DAYM_2_) * 2
            + getBit(DCF77Bit::DAYM_4_) * 4
@@ -390,28 +389,28 @@ int getDayM() const {
 
     return true;
   }
-  
-String getString() {
-  String retString = ""; 
-  retString += "" + String(getHour()) + ":";
-  retString += "" + String(getMin()) + " ";
-  retString += "" + String(getDayWString()) + " ";
-  retString += String(getMonthString()) + " ";
-  retString += String(getDayM()) + "/";
-  retString += "20" + String(getYear()) + " ";
-  if (areAllOK()) {
-    retString += "AllT";
 
-  } else {
-    retString += getBit(DCF77Bit::BIT_M_) ? "T" : "F";
-    retString += getBit(DCF77Bit::BIT_R_) ? "T" : "F";
-    retString += getBit(DCF77Bit::BIT_S_) ? "T" : "F";
-    retString += getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40) ? "T" : "F";
-    retString += getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20) ? "T" : "F";
-    retString += getParity(DCF77Bit::MONTH_1_, DCF77Bit::YEAR_80) ? "T" : "F";
+  String getString() {
+    String retString = "";
+    retString += "" + String(getHour()) + ":";
+    retString += "" + String(getMin()) + " ";
+    retString += "" + String(getDayWString()) + " ";
+    retString += String(getMonthString()) + " ";
+    retString += String(getDayM()) + "/";
+    retString += "20" + String(getYear()) + " ";
+    if (areAllOK()) {
+      retString += "AllT";
+
+    } else {
+      retString += getBit(DCF77Bit::BIT_M_) ? "T" : "F";
+      retString += getBit(DCF77Bit::BIT_R_) ? "T" : "F";
+      retString += getBit(DCF77Bit::BIT_S_) ? "T" : "F";
+      retString += getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40) ? "T" : "F";
+      retString += getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20) ? "T" : "F";
+      retString += getParity(DCF77Bit::MONTH_1_, DCF77Bit::YEAR_80) ? "T" : "F";
+    }
+    return retString;
   }
-  return retString;
-}
   String getStringDEL() const {
     String s;
     s.reserve(60);
@@ -449,7 +448,7 @@ bool firstSettingTime = true;
 int inputValue;
 
 // Drive all pins LOW (open-collector active) output used as mosfet. Use INPUT mode as low states output
-void ocDriveLowAll_fullON() { // called by interrupt
+void ocDriveLowAll_fullON() {  // called by interrupt
   for (size_t lo = 0; lo < totOutputPins; lo++) {
     const size_t pin = lo;
     if (values[pin] > 0) {
@@ -468,19 +467,6 @@ void ocDriveLowAll_fullOFF() {  // called by interrupt
   }
 }
 
-void testLed() {
-      for (size_t p = 0; p < totOutputPins; p++) {
-        for (size_t lo = 0; lo < totOutputPins; lo++) {
-          const size_t pin = lo;
-          if (lo == p) {
-            dcf77.setRaw(pin, 1);//[pin] = 1;
-          } else {
-            dcf77.setRaw(pin, 0);//[pin] = 0;
-          }
-        }
-        delay(1000);
-      }
-    }
 
 // chop led current obsolete
 void ocDriveWithoutInterrupt(size_t cycles = 10) {
@@ -807,8 +793,7 @@ void setup() {
 
   analogReadResolution(12);
 
-  DBG_PRINT("DCF77 pin : ");
-  DBG_PRINTLN(RADIOINPUT);
+  DBG_PRINTLN("Starting... ");
 
   // Start with everything released
   ocDriveLowAll_fullOFF();
@@ -821,9 +806,31 @@ void setup() {
 
   // setting up Led
   pinMode(LEDPIN, OUTPUT);
+  digitalWrite(LEDPIN, HIGH);
+  delay(100);
   digitalWrite(LEDPIN, LOW);
+  delay(200);
+  digitalWrite(LEDPIN, HIGH);
+  delay(300);
+  digitalWrite(LEDPIN, LOW);
+
   DBG_PRINTLN("End setup");
+  Serial.print("End setup");
   if (debug2) debugSetHoursLeds(2);
+}
+
+void testLed() {
+  for (size_t p = 0; p < totOutputPins; p++) {
+    for (size_t lo = 0; lo < totOutputPins; lo++) {
+      const size_t pin = lo;
+      if (lo == p) {
+        dcf77.setRaw(pin, 1);  //[pin] = 1;
+      } else {
+        dcf77.setRaw(pin, 0);  //[pin] = 0;
+      }
+    }
+    delay(1000);
+  }
 }
 
 
@@ -908,7 +915,7 @@ void loop() {
         }
       }
       // DOWN -> UP
-      if ((inVal > 1000) && (previVal < 1000)) {
+      if ((inVal > MINVAL_ANTENNA) && (previVal < MINVAL_ANTENNA)) {
         startUp = cMili;
         const int durCycleMili = cMili - lastStartUp;
         const int margin = 50;  //  margin ms
@@ -956,7 +963,7 @@ void loop() {
       }
 
       // UP -> DOWN
-      if ((inVal < 1000) && (previVal > 1000)) {
+      if ((inVal < MINVAL_ANTENNA) && (previVal > MINVAL_ANTENNA)) {
 
         const int durCycleMili = cMili - lastStartDown;
         const int minDurationRealPulse = storedDCF77upPulsesTimes.isFull() ? 500 : 10;  // not very logical
@@ -971,7 +978,7 @@ void loop() {
 
           // margin of 50 ms for duration and position
           const int critDeltaPos = storedDCF77upPulsesTimes.isFull() ? 50 : 1000;  // set tight only when ring is full
-          const int critDeltaDur = 50;                                  // if change 50, rewrite code below
+          const int critDeltaDur = 50;                                             // if change 50, rewrite code below
           const int mi = 100 - critDeltaDur;
           const int ma = 200 + critDeltaDur;
 
@@ -1022,7 +1029,7 @@ void loop() {
         previVal = inVal;
       }
 
-      digitalWrite(LEDPIN, inVal < 1000 ? LOW : HIGH);
+      digitalWrite(LEDPIN, inVal < MINVAL_ANTENNA ? LOW : HIGH);
       if (countDownValidTime > 0) {
         //////////// HERE go to loop with no reception
         break;
@@ -1031,9 +1038,9 @@ void loop() {
 
     // Test each output led
     const bool testEachLedFirst = false;
-    
-    if (testEachLedFirst) {testLed();}
-    
+
+    if (testEachLedFirst) { testLed(); }
+
     long long last_min = 0;
     // ignore countDownValidTime
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 60 : 10;
