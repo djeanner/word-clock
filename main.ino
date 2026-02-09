@@ -9,7 +9,8 @@
 // SERIAL DEBUG MACROS
 
 #define MINVAL_ANTENNA 500
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output
+#define INTERRUPT_WORD_CLOCK 0 
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #if SERIAL_DEBUG
 #define DBG_BEGIN(x) Serial.begin(x)
@@ -20,11 +21,13 @@
 #define DBG_PRINT(x)
 #define DBG_PRINTLN(x)
 #endif
+#define RADIOINPUT 28
 
 enum class DCF77Bit : uint8_t;
 enum class WordGP : uint8_t;  // pi pico wiring of GPOI and analogic input
 class DCF77Decoder;
 
+#if INTERRUPT_WORD_CLOCK
 // Interrups to control led brightness without flickering
 repeating_timer_t timer10ms;
 alarm_id_t alarmID;
@@ -53,6 +56,7 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
   ocDriveLowAll_fullOFF();
   return 0;  // one-shot alarm
 }
+#endif // INTERRUPT_WORD_CLOCK
 
 enum class DCF77Bit : uint8_t {
   BIT_M_ = 0,   // 0
@@ -136,7 +140,6 @@ enum class WordGP : uint8_t {
   MQUARTER = 20,
   MTWENTY = 13,     // was 22
   EXTRA = 21,       // new
-  RADIOINPUT = 28,  // GP28 A2
 };
 
 
@@ -684,9 +687,7 @@ public:
     // analyse correction
     const long long diff = (long long)t - (long long)tNow;  // error in seconds / if positive internal time is too slow
     const long long unsignedDiff = labs(diff);
-    const time_t lastTime = getLastTime();
-    const long long secondsSinceLastTime = (long long)t - lastTime;
-    //const long int secondsSinceLastTime_now = (long)tNow - lastTime;
+   
     if (debug3) DBG_PRINTLN("");
     if (debug3) DBG_PRINT("Time submitted for validation ");
     if (debug3) DBG_PRINT("Earlyer data reliable : ");
@@ -698,12 +699,12 @@ public:
     if (debug3) printTime(t);
     if (debug3) DBG_PRINT("now :            : ");
     if (debug3) printTime(tNow);
-    if (debug3) DBG_PRINT("last stored time : ");
-    if (debug3) printTime(lastTime);
+  
     const bool critConsistent = (unsignedDiff < 100);
     if (!qualityAccept) {
+      if (debug3) DBG_PRINT("Crit : |");
       if (debug3) DBG_PRINT(diff);
-      if (debug3) DBG_PRINTLN(" < 100");
+      if (debug3) DBG_PRINTLN("| < 100");
       setTime(t);
       // see if can consider switch to reliable
       if (critConsistent) {
@@ -711,6 +712,7 @@ public:
         qualityAccept = true;
       } else {
         if (debug3) DBG_PRINTLN("Crit failed: Time is not consistent (normal if first call). It is not considered as reliable");
+        return;
       }
     }
     // dont use else because qualityAccept changes in if
@@ -719,34 +721,36 @@ public:
         if (debug3) DBG_PRINTLN(" Crit failed: Time is not consistent: ignored");
         return;
       }
-      const long long factor = 600;  // 1 second per minute : 60 // 1 second ten minutes : 600 // 1 second per hour: 3600
-      const long long secondSinceLastAbs = labs(secondsSinceLastTime);
-      const bool critConsistent = (unsignedDiff < (secondSinceLastAbs / factor));
-      if (debug3) DBG_PRINT(factor);
-      if (debug3) DBG_PRINT(" * ");
-      if (debug3) DBG_PRINT(diff);
-      if (debug3) DBG_PRINT(critConsistent ? " < " : " > ");
-      if (debug3) DBG_PRINT(secondSinceLastAbs);
+      
+
+      setTime(t);  // correct time
       if (pointer == 0) {
+        if (debug3) DBG_PRINTLN(" Crit consistent :  first time quality, save time but not calculating error...");
         storeDate(tNow, 0L);
         return;
       }
-      if (!critConsistent) {
-        if (debug3) DBG_PRINTLN(" Crit failed times not consistent rejects time in quality mode");
-        return;
-      }
-      setTime(t);  // correct time
-
-      if (debug3) DBG_PRINTLN(" Crit consistent : save time and consider calculate error for fine tuning in quality mode");
+      if (debug3) DBG_PRINTLN(" Crit consistent : consider calculate error for fine tuning in quality mode");
+      const time_t lastTime = getLastTime();
+      if (debug3) DBG_PRINT("last stored time : ");
+      if (debug3) printTime(lastTime);
+      
+      const long long secondsSinceLastTime = (long long)t - lastTime;
+      const long long secondSinceLastAbs = labs(secondsSinceLastTime);
 
       const long long minNumberSeconds = 60 * 60;  // 60 * 60 : 1 Hour
-      if (unsignedDiff < minNumberSeconds) {
-        if (debug3) DBG_PRINTLN(" duration not long enough for meaningfull time correction:");
-        if (debug3) DBG_PRINT(unsignedDiff);
+      const bool critLongEnough = secondSinceLastAbs > minNumberSeconds;
+      if (!critLongEnough) {
+        if (debug3) DBG_PRINTLN(" Time not long enough for good precision rejects time in quality mode");
+        if (debug3) DBG_PRINT(secondSinceLastAbs);
         if (debug3) DBG_PRINT(" < ");
-        if (debug3) DBG_PRINTLN(minNumberSeconds);
+        if (debug3) DBG_PRINT(minNumberSeconds);
+        if (debug3) DBG_PRINTLN(" x ");
+
         return;
       }
+     
+      if (debug3) DBG_PRINTLN(" Crit consistent :  calculate error for fine tuning in quality mode");
+
       if (debug3) DBG_PRINTLN(" Calculate time correction:");
       const long long durationOneDay = 24 * 60 * 60;
       long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - lastTime);
@@ -759,8 +763,11 @@ public:
       if (debug3) DBG_PRINT(tNow);
       if (debug3) DBG_PRINT(" - ");
       if (debug3) DBG_PRINT(lastTime);
-      if (debug3) DBG_PRINT(" : ");
-      if (debug3) DBG_PRINTLN(errorSecondsPerDay);
+      if (debug3) DBG_PRINT(") = ");
+      if (debug3) DBG_PRINT(errorSecondsPerDay);
+      if (debug3) DBG_PRINT(" (including previous correction:");
+      if (debug3) DBG_PRINT(getLastCorrection());
+      if (debug3) DBG_PRINT(")");
 
       storeDate(tNow, errorSecondsPerDay);
       if (debug3) DBG_PRINT(" period:");
@@ -780,12 +787,14 @@ ClockControl theClockControl(10);
 DCF77Decoder dcf77;
 
 void setup() {
+#if INTERRUPT_WORD_CLOCK
   // inteerup
   add_repeating_timer_us(
     -10000,  // negative = exact interval, no drift
     timer10msCallback,
     NULL,
     &timer10ms);
+#endif
   if (debug2) debugSetHoursLeds(1);
 
   DBG_BEGIN(115200);
@@ -793,7 +802,8 @@ void setup() {
 
   analogReadResolution(12);
 
-  DBG_PRINTLN("Starting... ");
+  DBG_PRINT("DCF77 pin : ");
+  DBG_PRINTLN(RADIOINPUT);
 
   // Start with everything released
   ocDriveLowAll_fullOFF();
@@ -856,7 +866,7 @@ void loop() {
     for (int loop1 = 0; loop1 < 100000000; loop1++) {
 
       // meansure DCF77 level
-      const int inVal = analogRead((size_t)WordGP::RADIOINPUT);
+      const int inVal = analogRead(RADIOINPUT);
       cMili = millis();
       const unsigned long int milisOnly = (cMili % 1000UL);
       //const size_t avDur = 150; // average duration pulse
@@ -1062,6 +1072,6 @@ void loop() {
         sleep_ms(55000);  // wait less than a minute // delay()
       }
     }
-    DBG_PRINT("ends loop2 for ");
+    DBG_PRINTLN("ends loop2 ");
   }
 }
