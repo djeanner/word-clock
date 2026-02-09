@@ -21,7 +21,15 @@
 #define DBG_PRINT(x)
 #define DBG_PRINTLN(x)
 #endif
+
 #define RADIOINPUT 28
+
+// delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
+#if (INTERRUPT_WORD_CLOCK == 0) && (SERIAL_DEBUG == 0)
+  #define SLEEPORDELAYMS(ms) delay(ms)
+#else
+  #define SLEEPORDELAYMS(ms) sleep_ms(ms)
+#endif
 
 enum class DCF77Bit : uint8_t;
 enum class WordGP : uint8_t;  // pi pico wiring of GPOI and analogic input
@@ -1068,7 +1076,7 @@ void loop() {
         setWordClock(minute(t), hour(t), theClockControl.isReliable());
         numberMinStaysInLoop -= 1;
         if (numberMinStaysInLoop <= 0) break;
-        sleep_ms(55000);  // wait less than a minute // delay()
+        SLEEPORDELAYMS(55000);  // waits for 55 sec
       }
     }
     DBG_PRINTLN("ends loop2 ");
