@@ -1,19 +1,16 @@
-/*
-  // use pico board library by Earle F. Philhower, III 
-*/
+/* use pico board library by Earle F. Philhower, III */
 
 #include <time.h>
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
-// SERIAL DEBUG MACROS
-
-
 // board's led
 #define LEDPIN LED_BUILTIN
 
+// use interrupts for WordClock (0 no clock - could re-implement fast blinking labeled obsolete here)
 #define INTERRUPT_WORD_CLOCK 1 
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+// SERIAL DEBUG MACROS
+#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #if SERIAL_DEBUG
 #define DBG_BEGIN(x) Serial.begin(x)
@@ -27,7 +24,7 @@
 
 // GPIO for the analog input
 #define RADIOINPUT 28
-// minimal value of the level of the RADIOINPUT for goot 500 is good for 1.5 and 3.8 V receptors
+// minimal value of the level of the RADIOINPUT for up. 500 is good for 1.5 and 3.8 V receptors
 #define MINVAL_ANTENNA 500
 
 // delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
