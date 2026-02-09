@@ -825,7 +825,6 @@ void setup() {
   digitalWrite(LEDPIN, LOW);
 
   DBG_PRINTLN("End setup");
-  Serial.print("End setup");
   if (debug2) debugSetHoursLeds(2);
 }
 
