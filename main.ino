@@ -12,7 +12,7 @@
 // board's led
 #define LEDPIN LED_BUILTIN
 
-#define INTERRUPT_WORD_CLOCK 0 
+#define INTERRUPT_WORD_CLOCK 1 
 #define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #if SERIAL_DEBUG
@@ -37,39 +37,6 @@
   #define SLEEPORDELAYMS(ms) sleep_ms(ms)
 #endif
 
-#if INTERRUPT_WORD_CLOCK
-// Interrups to control led brightness without flickering
-repeating_timer_t timer10ms;
-alarm_id_t alarmID;
-
-// -------- interrupt function prototypes --------
-bool timer10msCallback(repeating_timer_t *rt);  // 100 Hz to avoid flickering
-int64_t alarmCallback(alarm_id_t id, void *user_data);
-
-// -------- Interrupt callback --------
-// Called every 10 ms
-bool timer10msCallback(repeating_timer_t *rt) {
-  ocDriveLowAll_fullON();
-  // prepare follop up off...
-  const uint64_t delayMicroSeconds = 1500;
-  alarmID = add_alarm_in_us(
-    delayMicroSeconds,
-    alarmCallback,
-    NULL,
-    true  // fire even if IRQs were briefly disabled
-  );
-  return true;  // keep repeating
-}
-
-// Called a few ms after timer10msCallback interrupt
-int64_t alarmCallback(alarm_id_t id, void *user_data) {
-  ocDriveLowAll_fullOFF();
-  return 0;  // one-shot alarm
-}
-#endif // INTERRUPT_WORD_CLOCK
-
-
-
 
 const bool debug8 = false;  // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
@@ -77,7 +44,6 @@ const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
 bool debug2 = !debug8;       // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
-
 
 class WordClock {
 private:
@@ -1054,23 +1020,55 @@ public:
 
 };
 
+#if INTERRUPT_WORD_CLOCK
+// Interrups to control led brightness without flickering
+repeating_timer_t timer10ms;
+alarm_id_t alarmID;
+
+// -------- interrupt function prototypes --------
+bool timer10msCallback(repeating_timer_t *rt);  // 100 Hz to avoid flickering
+int64_t alarmCallback(alarm_id_t id, void *user_data);
+
+// -------- Interrupt callback --------
+// Called every 10 ms
+bool timer10msCallback(repeating_timer_t *rt) {
+  theWordClock.ocDriveLowAll_fullON();
+  // prepare follop up off...
+  const uint64_t delayMicroSeconds = 1500;
+  alarmID = add_alarm_in_us(
+    delayMicroSeconds,
+    alarmCallback,
+    NULL,
+    true  // fire even if IRQs were briefly disabled
+  );
+  return true;  // keep repeating
+}
+
+// Called a few ms after timer10msCallback interrupt
+int64_t alarmCallback(alarm_id_t id, void *user_data) {
+  theWordClock.ocDriveLowAll_fullOFF();
+  return 0;  // one-shot alarm
+}
+#endif // INTERRUPT_WORD_CLOCK
+
 DCF77Decoder dcf77(RADIOINPUT);
 
 void setup() {
 #if INTERRUPT_WORD_CLOCK
-  // interupt
+  // set interupt for WordClock display every 10000 us
   add_repeating_timer_us(
-    -10000,  // negative = exact interval, no drift -10000: 100 Hz to avoid flickering
+    -10000,  // negative = exact interval, no drift -10000: 100 Hz to avoid visible flickering
     timer10msCallback,
     NULL,
     &timer10ms);
 #endif
+
   if (debug2) theWordClock.debugSetHoursLeds(1);
 
   DBG_BEGIN(115200);
   delay(2000);
 
-  analogReadResolution(12); // for DCF77 pin
+  analogReadResolution(12);
   DBG_PRINT("DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
@@ -1090,8 +1088,6 @@ void setup() {
   DBG_PRINTLN("End setup");
   if (debug2) theWordClock.debugSetHoursLeds(2);
 }
-
-
 
 
 void loop() {
