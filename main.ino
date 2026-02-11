@@ -1,17 +1,21 @@
-/* use pico board library by Earle F. Philhower, III */
+/*
+  // use pico board library by Earle F. Philhower, III 
+*/
 
 #include <time.h>
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
+
 // board's led
 #define LEDPIN LED_BUILTIN
 
-// use interrupts for WordClock (0 no clock - could re-implement fast blinking labeled obsolete here)
-#define INTERRUPT_WORD_CLOCK 1 
-// SERIAL DEBUG MACROS
-#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#define INTERRUPT_WORD_CLOCK 0 
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
+#define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
+
+// SERIAL DEBUG MACROS
 #if SERIAL_DEBUG
 #define DBG_BEGIN(x) Serial.begin(x)
 #define DBG_PRINT(x) Serial.print(x)
@@ -24,7 +28,7 @@
 
 // GPIO for the analog input
 #define RADIOINPUT 28
-// minimal value of the level of the RADIOINPUT for up. 500 is good for 1.5 and 3.8 V receptors
+// minimal value of the level of the RADIOINPUT for goot 500 is good for 1.5 and 3.8 V receptors
 #define MINVAL_ANTENNA 500
 
 // delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
@@ -245,12 +249,12 @@ public:
     bool isPositiveCorrection;
     const size_t fsize;
     time_t *tArray;
-    long int *rArray;
+    long long *rArray;
   public:
     ClockControl(size_t size)
       : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size) {
       tArray = new time_t[size];
-      rArray = new long int[size];
+      rArray = new long long[size];
       ;
     }
     ~ClockControl() {
@@ -264,7 +268,7 @@ public:
       if (pointer == 0) { return 0; }
       return tArray[pointer];
     }
-    long int getLastCorrection() {
+    long long getLastCorrection() {
       if (pointer == 0) { return 0; }
       return rArray[pointer];
     }
@@ -296,26 +300,28 @@ public:
       return;
     }
 
-    void storeDate(time_t tNow, long errorSecondsPerDay) {
+    void storeDate(const time_t tNow, const long long errorSecondsPerDay) {
+      pointer++;
+      if (pointer == fsize) pointer = 1;  // so pointer == 0 is only when nothing...
       tArray[pointer] = tNow;
       rArray[pointer] = errorSecondsPerDay;
-      if (errorSecondsPerDay == 0) {
+      isPositiveCorrection = errorSecondsPerDay > 0;
+      if (errorSecondsPerDay == 0LL) {
         period = 0;
       } else {
         const long durationOneDay = 24 * 60 * 60;
-        period = durationOneDay / errorSecondsPerDay;
+        period = durationOneDay / labs((long int)errorSecondsPerDay);
       }
-      isPositiveCorrection = errorSecondsPerDay > 0;
-      pointer++;
-      if (pointer == fsize) pointer = 1;  // so pointer == 0 is only when nothing...
     }
 
-    void printTime(time_t t = now()) {
-      char buf[32];
-      snprintf(buf, sizeof(buf), "%02d %02d %04d %02d:%02d:%02d",
-              day(t), month(t), year(t),
-              hour(t), minute(t), second(t));
-      DBG_PRINTLN(buf);  // or Serial.println(buf);
+    String stringTime(time_t t = now()) {
+      String retString = String(day(t)) + " " +
+                         String(month(t)) + " " +
+                         String(year(t)) + " " +
+                         (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                         (minute(t) < 10 ? "0" : "") + String(minute(t)) + ":" +
+                         (second(t) < 10 ? "0" : "") + String(second(t));
+      return retString;
     }
 
     void storeTime(tmElements_t tm) {
@@ -325,7 +331,7 @@ public:
 
       // analyse correction
       const long long diff = (long long)t - (long long)tNow;  // error in seconds / if positive internal time is too slow
-      const long long unsignedDiff = labs(diff);
+      const long long unsignedDiff = llabs(diff);
     
       if (debug3) DBG_PRINTLN("");
       if (debug3) DBG_PRINT("Time submitted for validation ");
@@ -335,9 +341,9 @@ public:
         else DBG_PRINTLN("N");
       }
       if (debug3) DBG_PRINT("tested time      : ");
-      if (debug3) printTime(t);
+      if (debug3) DBG_PRINTLN(stringTime(t));
       if (debug3) DBG_PRINT("now :            : ");
-      if (debug3) printTime(tNow);
+      if (debug3) DBG_PRINTLN(stringTime(tNow));
     
       const bool critConsistent = (unsignedDiff < 100);
       if (!qualityAccept) {
@@ -357,7 +363,7 @@ public:
       // dont use else because qualityAccept changes in if
       if (qualityAccept) {
         if (!critConsistent) {
-          if (debug3) DBG_PRINTLN(" Crit failed: Time is not consistent: ignored");
+          if (debug3) DBG_PRINTLN("Crit failed: Time is not consistent: ignored");
           return;
         }
         
@@ -365,16 +371,16 @@ public:
         setTime(t);  // correct time
         if (pointer == 0) {
           if (debug3) DBG_PRINTLN(" Crit consistent :  first time quality, save time but not calculating error...");
-          storeDate(tNow, 0L);
+          storeDate(tNow, 0LL);
           return;
         }
         if (debug3) DBG_PRINTLN(" Crit consistent : consider calculate error for fine tuning in quality mode");
         const time_t lastTime = getLastTime();
         if (debug3) DBG_PRINT("last stored time : ");
-        if (debug3) printTime(lastTime);
+        if (debug3) DBG_PRINT(stringTime(lastTime));
         
-        const long long secondsSinceLastTime = (long long)t - lastTime;
-        const long long secondSinceLastAbs = labs(secondsSinceLastTime);
+        const long long secondsSinceLastTime = (long long)t - (long long)lastTime;
+        const long long secondSinceLastAbs = llabs(secondsSinceLastTime);
 
         const long long minNumberSeconds = 60 * 60;  // 60 * 60 : 1 Hour
         const bool critLongEnough = secondSinceLastAbs > minNumberSeconds;
@@ -388,13 +394,12 @@ public:
           return;
         }
       
-        if (debug3) DBG_PRINTLN(" Crit consistent :  calculate error for fine tuning in quality mode");
+        if (debug3) DBG_PRINTLN("Crit consistent : calculate error for fine tuning in quality mode");
 
         if (debug3) DBG_PRINTLN(" Calculate time correction:");
         const long long durationOneDay = 24 * 60 * 60;
-        long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - lastTime);
-        if (true) { errorSecondsPerDay += getLastCorrection(); }
-        if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
+        long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - (long long)lastTime);
+        if (debug3) DBG_PRINT("errorSecondsPerDay = ");
         if (debug3) DBG_PRINT(diff);
         if (debug3) DBG_PRINT(" * ");
         if (debug3) DBG_PRINT(durationOneDay);
@@ -403,18 +408,32 @@ public:
         if (debug3) DBG_PRINT(" - ");
         if (debug3) DBG_PRINT(lastTime);
         if (debug3) DBG_PRINT(") = ");
+        if (debug3) DBG_PRINTLN(errorSecondsPerDay);
+
+        if (debug3) DBG_PRINT("errorSecondsPerDay = ");
+        if (debug3) DBG_PRINT(diff);
+        if (debug3) DBG_PRINT(" * ");
+        if (debug3) DBG_PRINT(durationOneDay);
+        if (debug3) DBG_PRINT(" / (");
+        if (debug3) DBG_PRINT(tNow - lastTime);
+        if (debug3) DBG_PRINT(") = ");
+        if (debug3) DBG_PRINTLN(errorSecondsPerDay);
+
+        errorSecondsPerDay += getLastCorrection();
+
+        if (debug3) DBG_PRINT("Including previous correction : ");
         if (debug3) DBG_PRINT(errorSecondsPerDay);
-        if (debug3) DBG_PRINT(" (including previous correction:");
-        if (debug3) DBG_PRINT(getLastCorrection());
-        if (debug3) DBG_PRINT(")");
+        if (debug3) DBG_PRINTLN("");
 
         storeDate(tNow, errorSecondsPerDay);
-        if (debug3) DBG_PRINT(" period:");
+        if (debug3) DBG_PRINT(" Period ");
         if (debug3) {
-          if (isPositiveCorrection) DBG_PRINT("+");
-          else DBG_PRINT("-");
+          if (isPositiveCorrection) DBG_PRINT("add ");
+          else DBG_PRINT("subtract ");
         }
-        if (debug3) DBG_PRINTLN(period);
+        if (debug3) DBG_PRINT("a second : every ");
+        if (debug3) DBG_PRINT(period);
+        if (debug3) DBG_PRINTLN(" s");
       }
       return;
     }
@@ -611,7 +630,9 @@ public:
       if (oldIndexSec != indexSec) {
         fClockControl.adjustTime(seconds);
         oldIndexSec = indexSec;
+#if DEBUGINWORDCLOCK
         if (debug2) theWordClock.debugSetHoursLeds(10);
+#endif // DEBUGINWORDCLOCK
 
         // manage validity of time set by initCountDownValidTime
         if (countDownValidTime > 0) countDownValidTime -= 1;
@@ -647,11 +668,10 @@ public:
         }
         // IMPORTNT : Here may want to reload each bit at each cycle be having next line uncommented
         //valueIndexSec[indexSec] = 2;
-        bool displayStrongTimeWhileReceptingSignal = false;
-        if (displayStrongTimeWhileReceptingSignal) {
-          time_t t = now();
+        time_t t = now();
+        bool saveTimeNow = (((minute(t) % 5 ) == 0) && (second(t) == 0));
+        if (saveTimeNow) {
           theWordClock.setWordClock(minute(t), hour(t), fClockControl.isReliable());
-          theWordClock.ocDriveLowAll_fullON();
         }
       }
       // DOWN -> UP
@@ -667,8 +687,9 @@ public:
 
           const size_t pointerInArrayMinus = (indexSec + 59) % 60;
           setRaw(pointerInArrayMinus, 3);
-
+#if DEBUGINWORDCLOCK
           if (debug2) theWordClock.debugSetHoursLeds(4);
+#endif // DEBUGINWORDCLOCK
           setStart(pointerInArrayMinus);
 
           if (areAllOK()) {
@@ -730,14 +751,18 @@ public:
               int deltaDUR = 0;
               String pulse = "";
               if (durUpMili < 150) {  // short pulse
+#if DEBUGINWORDCLOCK
                 if (debug2) theWordClock.debugSetHoursLeds(8);
+#endif // DEBUGINWORDCLOCK
                 //valueIndexSec[indexSec] = 0; DEL
                 setRaw(indexSec, 0);
 
                 deltaDUR = durUpMili - 100;
                 pulse = "S";
               } else {
+#if DEBUGINWORDCLOCK
                 if (debug2) theWordClock.debugSetHoursLeds(7);
+#endif // DEBUGINWORDCLOCK
                 setRaw(indexSec, 1);
                 //valueIndexSec[indexSec] = 1; DEL
                 deltaDUR = durUpMili - 200;
@@ -1052,20 +1077,21 @@ DCF77Decoder dcf77(RADIOINPUT);
 
 void setup() {
 #if INTERRUPT_WORD_CLOCK
-  // set interupt for WordClock display every 10000 us
+  // interupt every 10000 us
   add_repeating_timer_us(
     -10000,  // negative = exact interval, no drift -10000: 100 Hz to avoid visible flickering
     timer10msCallback,
     NULL,
     &timer10ms);
 #endif
-
-  if (debug2) theWordClock.debugSetHoursLeds(1);
+  
+if (debug2) theWordClock.debugSetHoursLeds(1);
 
   DBG_BEGIN(115200);
   delay(2000);
 
   analogReadResolution(12);
+
   DBG_PRINT("DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
@@ -1086,7 +1112,6 @@ void setup() {
   if (debug2) theWordClock.debugSetHoursLeds(2);
 }
 
-
 void loop() {
   if (debug2) theWordClock.debugSetHoursLeds(3);
 
@@ -1098,14 +1123,14 @@ void loop() {
 
   for (int superLoop = 0; superLoop < 100000000; superLoop++) {
     // Main listener : returns when have recieved valid time/date. May last minutes.
-    DBG_PRINTLN("Starts listening for dcf77 signal ...");
+    DBG_PRINTLN("Starts listening to dcf77 signal ...");
     dcf77.listen();
    
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
     long long last_min = 0;
     // ignore countDownValidTime
     unsigned long int numberMinStaysInLoop = dcf77.isClockReliable() ? 60 : 10;
-    DBG_PRINT("Stops listening for dcf77 for ");
+    DBG_PRINT("Stops listening to dcf77 for ");
     DBG_PRINT(numberMinStaysInLoop);
     DBG_PRINTLN(" min.");
     time_t t = now();
@@ -1116,6 +1141,13 @@ void loop() {
       int curMin = minute(t);
       // when minute changes
       if (curMin != lastMin) {
+
+        // perturb time every minute.. to see how manages
+        //
+        //
+        setTime(now() + 1);
+        //
+
         lastMin = curMin;
         // refine time if cristal not precise enough
         dcf77.adjustClockTimeMinute(millis() / 60000LL);
