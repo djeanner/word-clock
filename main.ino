@@ -12,20 +12,24 @@
 
 // not using interupts for word clock is not displaying time
 #define INTERRUPT_WORD_CLOCK 1
+// both methods are implemented but have different requirements for compilation
+// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
+#define CLOCK_CONTROL_INTERRUPT 1
 #define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #else
 
 // not using interupts for word clock is not displaying time
 #define INTERRUPT_WORD_CLOCK 0
+// both methods are implemented but have different requirements for compilation
+// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
+#define CLOCK_CONTROL_INTERRUPT 0
 #define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #endif
 
 
-// both methods are implemented but have different requirements for compilation
-// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
-#define CLOCK_CONTROL_INTERRUPT 1
+
 
 #define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
 
@@ -56,7 +60,7 @@
 #endif
 
 
-const bool debug8 = false;  // text
+const bool debug8 = true;  // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
@@ -227,13 +231,13 @@ public:
 
       setTime(t);  // correct time
       if (pointer == 0) {
-        if (debug3) DBG_PRINTLN("Crit consistent :  first time quality, save time but not calculating error...");
+        if (debug3) DBG_PRINTLN("Crit consistent : first time quality, save time but not calculating error...");
         storeDate(tNow, 0LL);
         return;
       }
-      if (debug3) DBG_PRINTLN(" Crit consistent : consider calculate error for fine tuning in quality mode");
+      if (debug3) DBG_PRINTLN("Crit consistent : consider calculate error for fine tuning in quality mode");
       const time_t lastTime = getLastTime();
-      if (debug3) DBG_PRINT("last stored time : ");
+      if (debug3) DBG_PRINT("Last stored time : ");
       if (debug3) DBG_PRINT(stringTime(lastTime));
       
       const long long secondsSinceLastTime = (long long)t - (long long)lastTime;
@@ -247,16 +251,15 @@ public:
         if (debug3) DBG_PRINT(" < ");
         if (debug3) DBG_PRINT(minNumberSeconds);
         if (debug3) DBG_PRINTLN(" x ");
-
         return;
       }
     
       if (debug3) DBG_PRINTLN("Crit consistent : calculate error for fine tuning in quality mode");
 
-      if (debug3) DBG_PRINTLN(" Calculate time correction:");
+      if (debug3) DBG_PRINTLN("Calculate time correction...");
       const long long durationOneDay = 24 * 60 * 60;
       long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - (long long)lastTime);
-      if (debug3) DBG_PRINT("errorSecondsPerDay = ");
+      if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
       if (debug3) DBG_PRINT(diff);
       if (debug3) DBG_PRINT(" * ");
       if (debug3) DBG_PRINT(durationOneDay);
@@ -267,7 +270,7 @@ public:
       if (debug3) DBG_PRINT(") = ");
       if (debug3) DBG_PRINTLN(errorSecondsPerDay);
 
-      if (debug3) DBG_PRINT("errorSecondsPerDay = ");
+      if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
       if (debug3) DBG_PRINT(diff);
       if (debug3) DBG_PRINT(" * ");
       if (debug3) DBG_PRINT(durationOneDay);
@@ -703,10 +706,6 @@ public:
 #if DEBUGINWORDCLOCK
       if (debug2) theWordClock.debugSetHoursLeds(10);
 #endif // DEBUGINWORDCLOCK
-
-      // manage validity of time set by initCountDownValidTime
-      //if (countDownValidTime > 0) countDownValidTime -= 1;
-
       // dump info
       const size_t numberPerLine = cursor_on ? 6 : 60;
       if ((indexSec % numberPerLine) == 0 && debug8) {
@@ -1175,14 +1174,14 @@ void loop() {
     theWordClock.testLed();
   }
 
-  for (int superLoop = 0; superLoop < 100000000; superLoop++) {
+  for (long superLoop = 0; superLoop < 100000000; superLoop++) {
     // Main listener : returns when have recieved valid time/date. May last minutes.
-    DBG_PRINTLN("Starts listening to dcf77 signal ...");
+    DBG_PRINTLN("Start listening to dcf77 signal ...");
 
     dcf77.reset();
     dcf77.initListen();
     int lastMinL1 = minute(now());
-    for (long fastLoop = 0; fastLoop < 10000000; fastLoop ++) {
+    for (long fastLoop = 0; fastLoop < 1000000000; fastLoop ++) {
       // fast loop 
       const int isTimeValid = dcf77.listen();
       if (isTimeValid == 1) {
@@ -1196,15 +1195,12 @@ void loop() {
         lastMinL1 = curMin;
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
       }
-      
     }
   
-    
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
     long long last_min = 0;
-    // ignore countDownValidTime
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 20 : 5; // 180 : 10;
-    DBG_PRINT("Stops listening to dcf77 for ");
+    DBG_PRINT("Stop listening to dcf77 for ");
     DBG_PRINT(numberMinStaysInLoop);
     DBG_PRINTLN(" min.");
     time_t t = now();
@@ -1215,14 +1211,13 @@ void loop() {
       int curMin = minute(t);
       // when minute changes
       if (curMin != lastMin) {
-
+        lastMin = curMin;
         // perturb time every minute.. to see how manages
         //
         //
         setTime(now() + 1);
         //
 
-        lastMin = curMin;
         // refine time if cristal not precise enough
 #if !CLOCK_CONTROL_INTERRUPT
         theClockControl.adjustTimeMinute(millis() / 60000LL);

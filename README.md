@@ -24,3 +24,17 @@ We used a interrupts to control light intensity.
 20:50:59.967 -> Just stored a time : 
 20:50:59.967 -> 11 1 2026 20:51:00
 20:50:59.967 -> Stops listening to dcf77 for 10 min.
+
+21:15:00.011 -> 
+21:15:00.011 -> Time submitted for validation Earlyer data reliable : N
+21:15:00.011 -> tested time      : 11 1 2026 21:15:00
+21:15:00.011 -> now :            : 11 1 2026 21:15:03
+21:15:00.011 -> Crit : |-3| < 100
+21:15:00.011 -> Crit OK: Switch to reliable
+21:15:02.133 ->  Crit consistent :  first time quality, save time but not calculating error...
+? blocked until 1:13
+
+----
+01:15:39.450 -> DCF77 pin : 28
+01:15:40.062 -> End setup
+01:15:40.062 -> Starts listening to dcf77 signal ...
