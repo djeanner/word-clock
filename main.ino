@@ -224,16 +224,16 @@ public:
       }
       
 
-      setTime(t);  // correct time
       if (pointer == 0) {
         if (debug3) DBG_PRINTLN("Crit consistent : first time quality, save time but not calculating error...");
+        setTime(t);  // correct time
         storeDate(tNow, 0LL);
         return;
       }
       if (debug3) DBG_PRINTLN("Crit consistent : consider calculate error for fine tuning in quality mode");
       const time_t lastTime = getLastTime();
       if (debug3) DBG_PRINT("Last stored time : ");
-      if (debug3) DBG_PRINT(stringTime(lastTime));
+      if (debug3) DBG_PRINTLN(stringTime(lastTime));
       
       const long long secondsSinceLastTime = (long long)t - (long long)lastTime;
       const long long secondSinceLastAbs = llabs(secondsSinceLastTime);
@@ -248,7 +248,7 @@ public:
         if (debug3) DBG_PRINTLN(" s.");
         return;
       }
-    
+      setTime(t);  // correct time
       if (debug3) DBG_PRINTLN("Crit consistent : calculate error for fine tuning in quality mode");
 
       if (debug3) DBG_PRINTLN("Calculate time correction...");
@@ -1046,7 +1046,7 @@ public:
     } else {
       retString += getBit(DCF77Bit::BIT_M_) == 1 ? "1" : "0";
       retString += getBit(DCF77Bit::BIT_R_) == 1 ? "1" : "0";
-      retString += getBit(DCF77Bit::BIT_S_) == 1 ?"1" : "0";
+      retString += getBit(DCF77Bit::BIT_S_) == 1 ? "1" : "0";
       retString += getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40) == 1 ? "1" : "0";
       retString += getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20) == 1 ? "1" : "0";
       retString += getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80) == 1 ? "1" : "0";
