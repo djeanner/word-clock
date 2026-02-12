@@ -67,7 +67,7 @@ const bool debug3 = true;    // dump info about the validation process of times
 // -------- interrupt function prototypes --------
 bool clockControlAdjustCallback(repeating_timer_t *rt);
 repeating_timer_t timerClockControlAdjust;
-
+bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
 
@@ -108,7 +108,7 @@ public:
 
   void interruptAdjust() {
     if (!qualityAccept) { return; }
-    if (period == 0) { return; }
+    if (period == 0L) { return; }
     if (isPositiveCorrection) {
       setTime(now() + 1);
     } else {
@@ -121,8 +121,8 @@ public:
   // if not using interrupts, call this every second with a second counter it will adjust if necessary. Don't miss seconds
   void adjustTime(long int curSec) {
     if (!qualityAccept) { return; }
-    if (period == 0) { return; }
-    if ((curSec % period) == 0) {
+    if (period == 0L) { return; }
+    if ((curSec % period) == 0L) {
       if (isPositiveCorrection) {
         setTime(now() + 1);
       } else {
@@ -136,7 +136,7 @@ public:
   void adjustTimeMinute(long int curMin) {
     if (!qualityAccept) { return; }
     if (period == 0) { return; }
-    if ((curMin % (period / 60)) == 0) {
+    if ((curMin % (period / 60L)) == 0L) {
       if (isPositiveCorrection) {
         setTime(now() + 1);
       } else {
@@ -151,28 +151,35 @@ public:
     if (pointer == fsize) pointer = 1;  // so pointer == 0 is only when nothing...
     tArray[pointer] = tNow;
     rArray[pointer] = errorSecondsPerDay;
-    isPositiveCorrection = errorSecondsPerDay > 0;
+    isPositiveCorrection = errorSecondsPerDay > 0LL;
     if (errorSecondsPerDay == 0LL) {
-      period = 0;
+      period = 0L;
     } else {
       const long durationOneDay = 24 * 60 * 60;
       period = durationOneDay / labs((long int)errorSecondsPerDay);
     }
 #if CLOCK_CONTROL_INTERRUPT
-    cancel_repeating_timer(&timerClockControlAdjust);
-    long long interval_us = -(long long)(period * 1000000LL);
-    add_repeating_timer_us(
+    if (thereIsAtimerClockControlAdjust_running) {
+      cancel_repeating_timer(&timerClockControlAdjust);
+      thereIsAtimerClockControlAdjust_running = false;
+    }
+    if (period != 0L) {
+      long long interval_us = -((long long)period * 1000000LL);
+      add_repeating_timer_us(
         interval_us,
         clockControlAdjustCallback,
         NULL,
         &timerClockControlAdjust
-    );
+      );
+      thereIsAtimerClockControlAdjust_running = true;
+    }
+    
 #endif // CLOCK_CONTROL_INTERRUPT
   }
 
   String stringTime(time_t t = now()) {
-    String retString = String(day(t)) + " " +
-                        String(month(t)) + " " +
+    String retString = (day(t) < 10 ? " " : "") + String(day(t)) + " " +
+                        (month(t) < 10 ? " " : "") + String(month(t)) + " " +
                         String(year(t)) + " " +
                         (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
                         (minute(t) < 10 ? "0" : "") + String(minute(t)) + ":" +
