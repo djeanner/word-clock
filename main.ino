@@ -6,8 +6,6 @@
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
-
-
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
 
 // not using interupts for word clock is not displaying time
@@ -27,8 +25,6 @@
 #define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 
 #endif
-
-
 
 
 #define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
@@ -59,8 +55,7 @@
   #define SLEEPORDELAYMS(ms) sleep_ms(ms)
 #endif
 
-
-const bool debug8 = true;  // text
+const bool debug8 = false;   // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
@@ -246,11 +241,11 @@ public:
       const long long minNumberSeconds = 60 * 60;  // 60 * 60 : 1 Hour
       const bool critLongEnough = secondSinceLastAbs > minNumberSeconds;
       if (!critLongEnough) {
-        if (debug3) DBG_PRINTLN(" Time not long enough for good precision rejects time in quality mode");
+        if (debug3) DBG_PRINTLN(" Time since last stored time not long enough for good precision rejects time in quality mode");
         if (debug3) DBG_PRINT(secondSinceLastAbs);
         if (debug3) DBG_PRINT(" < ");
         if (debug3) DBG_PRINT(minNumberSeconds);
-        if (debug3) DBG_PRINTLN(" x ");
+        if (debug3) DBG_PRINTLN(" s.");
         return;
       }
     
@@ -1029,7 +1024,6 @@ public:
     if (getMonth() > 12) return false;
 
     if (getBit(DCF77Bit::BIT_M_)) return false;
-    if (getBit(DCF77Bit::BIT_R_)) return false;
     if (1 - getBit(DCF77Bit::BIT_S_)) return false;
 
     if (getBit(DCF77Bit::P1) != getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) return false;
