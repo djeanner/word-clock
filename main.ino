@@ -511,12 +511,12 @@ public:
   
   enum class DCF77Bit : uint8_t {
     BIT_M_ = 0,   // 0
-    BIT_R_ = 15,  // 0
+    BIT_R_ = 15,  // 0 1: abnormal transmitter
     BIT_A1 = 16,
     BIT_Z1 = 17,
     BIT_Z2 = 18,
     BIT_A2 = 19,
-    BIT_S_ = 20,  // 1
+    BIT_S_ = 20,  // 1 
 
     MIN_1_ = 21,  // Minute code
     MIN_2_ = 22,  // Minute code
@@ -561,7 +561,7 @@ public:
     YEAR_40 = 56,  // Year code
     YEAR_80 = 57,  // Year code
 
-    P3 = 58  // parity DCF77_getParity(DCF77Bit::YEAR_1, DCF77_YEAR_80)
+    P3 = 58  // parity DCF77_getParity(DCF77Bit::DAYM_1_, DCF77_YEAR_80)
   };
 
   /// @brief save integers and take average value ingoring smallest and largest Used for start of pulses
@@ -699,10 +699,11 @@ public:
     const size_t indexSec = static_cast<size_t>(((cMili - substract) / 1000UL) % 60UL);
 
     if (oldIndexSec != indexSec) {
+      oldIndexSec = indexSec;
 #if !CLOCK_CONTROL_INTERRUPT
       theClockControl.adjustTime(seconds);
 #endif // !CLOCK_CONTROL_INTERRUPT
-      oldIndexSec = indexSec;
+
 #if DEBUGINWORDCLOCK
       if (debug2) theWordClock.debugSetHoursLeds(10);
 #endif // DEBUGINWORDCLOCK
@@ -1029,35 +1030,34 @@ public:
 
     if (getBit(DCF77Bit::BIT_M_)) return false;
     if (getBit(DCF77Bit::BIT_R_)) return false;
-    if (!getBit(DCF77Bit::BIT_S_)) return false;
+    if (1 - getBit(DCF77Bit::BIT_S_)) return false;
 
     if (getBit(DCF77Bit::P1) != getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) return false;
     if (getBit(DCF77Bit::P2) != getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) return false;
-    if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::MONTH_1_, DCF77Bit::YEAR_80)) return false;
+    if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) return false;
 
     return true;
   }
 
   String getString() {
     String retString = "";
-    retString += "" + String(getHour()) + ":";
-    retString += "" + String(getMin()) + " ";
+    retString += "" + String((getHour() < 10 ? "0" : "") + String(getHour())) + ":";
+    retString += "" + String((getMin() < 10 ? "0" : "") + String(getMin())) + " ";
     retString += "" + String(getDayWString()) + " ";
-    retString += String(getMonthString()) + " ";
-    retString += String(getDayM()) + "/";
-    retString += "20" + String(getYear()) + " ";
+    retString += getMonthString() + " ";
+    retString += String(getDayM()) + " ";
+    retString += String(2000 + getYear()) + " ";
     if (areAllOK()) {
       retString += "AllT";
-
     } else {
-      retString += getBit(DCF77Bit::BIT_M_) ? "T" : "F";
-      retString += getBit(DCF77Bit::BIT_R_) ? "T" : "F";
-      retString += getBit(DCF77Bit::BIT_S_) ? "T" : "F";
-      retString += getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40) ? "T" : "F";
-      retString += getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20) ? "T" : "F";
-      retString += getParity(DCF77Bit::MONTH_1_, DCF77Bit::YEAR_80) ? "T" : "F";
+      retString += getBit(DCF77Bit::BIT_M_) == 1 ? "1" : "0";
+      retString += getBit(DCF77Bit::BIT_R_) == 1 ? "1" : "0";
+      retString += getBit(DCF77Bit::BIT_S_) == 1 ?"1" : "0";
+      retString += getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40) == 1 ? "1" : "0";
+      retString += getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20) == 1 ? "1" : "0";
+      retString += getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80) == 1 ? "1" : "0";
     }
-    return retString;
+    return retString; 
   }
 
   String getStringDEL() const {
@@ -1198,7 +1198,6 @@ void loop() {
     }
   
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
-    long long last_min = 0;
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 20 : 5; // 180 : 10;
     DBG_PRINT("Stop listening to dcf77 for ");
     DBG_PRINT(numberMinStaysInLoop);

@@ -38,3 +38,25 @@ We used a interrupts to control light intensity.
 01:15:39.450 -> DCF77 pin : 28
 01:15:40.062 -> End setup
 01:15:40.062 -> Starts listening to dcf77 signal ...
+
+
+DCF77 code
+Index x10           [000000000011111111112222222222333333333344444444445555555555]
+Index x1            [0    5    0    5    0    5    0    5    0    5    0    5   9]
+Fixed   to 1        [M              R    S                                       ]                               <MRSmhM>
+Code (M:1 m:2)      [                AZza                                        ]
+Parity              [                            1      2                      3 ]                               <MRSmhM>
+name                [ ??????????????      < min > <hour> <dayM><D><mon><year  >  ]                                      
+all combined        [M??????????????RAZzaS< min >1<hour>2<dayM><D><mon><year  >3£]                               <MRSmhM>
+10:25:18.461 -> txt:[-+---++---+++-+---+_++-+--+-+----+-+-+--+---+-+----++--+--+£],Lms:603, 10:25 Thu Feb 12/2026 FFTTTF
+all combined        [M??????????????RAZzaS< min >1<hour>2<dayM><D><mon><year  >3£]                               <MRSmhM>
+10:29:12.530 -> txt:[-----++--++++_----+-++--+-+-+----+-+-+--+---+-+----++--+--+£],Lms:794, 10:29 Thu Feb 12/2026 FFTTTF 
+10:30:06.515 -> txt:[--+-++-_-+++++----+-+----++------+-+-+--+---+-+- --++--+--+£],Lms:795, 10:30 Thu Oct 12/2026 FFTFTT 
+
+all combined        [M??????????????RAZzaS< min >1<hour>2<dayM><D><mon><year  >3£]                               <MRSmhM>
+10:53:18.511 -> txt:[-+------+--++++---+-+++--+-+-----+-+-+--+---+-+----++--+--+£],Lms:796, 10:53 Thu Feb 12/2026 FFTFTF 
+10:59:30.539 -> txt:[---++++--+-+-+----+-+--------+---+-+-+--+---+-+----++--+--+£],Lms:797, 11:00 Thu Feb 12/2026 FFTFFF 
+11:10:30.503 -> txt:[-+++-++++--++++---+-++---+---+-_-+---+--+---+-+----++--+--+£],Lms:798, 11:11 Thu Feb 12/2026 FFTFFF 
+UPdate  inverted M S
+all combined        [M??????????????RAZzaS< min >1<hour>2<dayM><D><mon><year  >3£]                               <MRSmhM>
+12:06:07.531 -> txt:[--+-+--+_--+-+----+-+-++------+--+---+--+---+-+----++--+--+£],Lms:696, 12:06 Thu Feb 12 2026 FFTFFF 
