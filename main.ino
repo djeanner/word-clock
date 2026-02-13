@@ -1199,7 +1199,7 @@ void loop() {
     }
   
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
-    unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 20 : 5; // 180 : 10;
+    unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 180 : 10; // 20 : 5; //
     DBG_PRINT("Stop listening to dcf77 for ");
     DBG_PRINT(numberMinStaysInLoop);
     DBG_PRINTLN(" min.");
@@ -1215,7 +1215,7 @@ void loop() {
         // perturb time every minute.. to see how manages
         //
         //
-        setTime(now() + 1);
+        // setTime(now() + 1);
         //
 
         // refine time if cristal not precise enough

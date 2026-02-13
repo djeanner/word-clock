@@ -71,3 +71,147 @@ Fixed paratiy...
 
 
 ```
+
+
+
+
+
+
+
+
+
+---------------
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : N
+tested time      : 13  1 2026  8:19:00
+now :            : 13  1 2026  8:19:05
+Crit : |-5| < 100
+Crit OK: Switch to reliable
+Crit consistent : first time quality, save time but not calculating error...
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  8:40:00
+now :            : 13  1 2026  8:40:19
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  8:19:05
+ Time since last stored time not long enough for good precision rejects time in quality mode
+1255 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  9:04:00
+now :            : 13  1 2026  9:04:39
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  8:19:05
+ Time since last stored time not long enough for good precision rejects time in quality mode
+2695 < 3600 s.
+Stop listening to dcf77 for 20 min.
+
+
+
+
+=============================
+
+
+
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : N
+tested time      : 13  1 2026  8:19:00
+now :            : 13  1 2026  8:19:05
+Crit : |-5| < 100
+Crit OK: Switch to reliable
+Crit consistent : first time quality, save time but not calculating error...
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  8:40:00
+now :            : 13  1 2026  8:40:19
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  8:19:05
+ Time since last stored time not long enough for good precision rejects time in quality mode
+1255 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  9:04:00
+now :            : 13  1 2026  9:04:39
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  8:19:05
+ Time since last stored time not long enough for good precision rejects time in quality mode
+2695 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  9:25:00
+now :            : 13  1 2026  9:26:00
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  8:19:05
+Crit consistent : calculate error for fine tuning in quality mode
+Calculate time correction...
+ errorSecondsPerDay = -60 * 86400 / (1768296360 - 1768292345) = -1291
+ errorSecondsPerDay = -60 * 86400 / (4015) = -1291
+Including previous correction : -1291
+ Period subtract a second : every 66 s
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026  9:47:00
+now :            : 13  1 2026  9:46:57
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  9:26:00
+ Time since last stored time not long enough for good precision rejects time in quality mode
+1260 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026 10:09:00
+now :            : 13  1 2026 10:08:54
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  9:26:00
+ Time since last stored time not long enough for good precision rejects time in quality mode
+2580 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026 10:33:00
+now :            : 13  1 2026 10:32:50
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026  9:26:00
+Crit consistent : calculate error for fine tuning in quality mode
+Calculate time correction...
+ errorSecondsPerDay = 10 * 86400 / (1768300370 - 1768296360) = 215
+ errorSecondsPerDay = 10 * 86400 / (4010) = 215
+Including previous correction : -1076
+ Period subtract a second : every 80 s
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026 10:55:00
+now :            : 13  1 2026 10:54:58
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026 10:32:50
+ Time since last stored time not long enough for good precision rejects time in quality mode
+1330 < 3600 s.
+Stop listening to dcf77 for 20 min.
+Start listening to dcf77 signal ...
+
+Time submitted for validation Earlyer data reliable : Y
+tested time      : 13  1 2026 11:16:00
+now :            : 13  1 2026 11:15:57
+Crit consistent : consider calculate error for fine tuning in quality mode
+Last stored time : 13  1 2026 10:32:50
+ Time since last stored time not long enough for good precision rejects time in quality mode
+2590 < 3600 s.
+Stop listening to dcf77 for 20 min.
