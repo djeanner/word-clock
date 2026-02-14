@@ -23,10 +23,10 @@ void StringWindow::draw() {
   TFT_Window::draw();
   if (getWidth() > -1) {}
   if (getHeight() > -1) {}
-  int ix = fx + fframe;
-  int iy = fy + fframe;
-  int iw = fw - 2 * fframe;
-  int ih = fh - 2 * fframe;
+  int ix = fx + fframeWidth;
+  int iy = fy + fframeWidth;
+  int iw = fw - 2 * fframeWidth;
+  int ih = fh - 2 * fframeWidth;
 
   ftft->setTextColor(ftextColor);
   ftft->setTextSize(ftextSize);

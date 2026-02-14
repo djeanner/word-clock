@@ -7,7 +7,7 @@ TFT_Window::TFT_Window(TFT_Screen* aScreen,
                        uint16_t bgColor)
   : fScreen(aScreen),
     fx(x), fy(y), fw(w), fh(h),
-    fframe(frame),
+    fframeWidth(frame),
     fframeColor(frameColor),
     fbgColor(bgColor)
 {
@@ -24,17 +24,17 @@ void TFT_Window::draw() {
   int ih = fh;
 
   // draw frame
-  if (fframe > 0) {
-    for (int i = 0; i < fframe; i++) {
+  if (fframeWidth > 0) {
+    for (int i = 0; i < fframeWidth; i++) {
       ftft->drawRect(fx + i, fy + i,
                     fw - 2 * i, fh - 2 * i,
                     fframeColor);
     }
 
-    ix += fframe;
-    iy += fframe;
-    iw -= 2 * fframe;
-    ih -= 2 * fframe;
+    ix += fframeWidth;
+    iy += fframeWidth;
+    iw -= 2 * fframeWidth;
+    ih -= 2 * fframeWidth;
   }
 
   // fill background inside frame

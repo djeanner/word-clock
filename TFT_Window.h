@@ -11,7 +11,7 @@ protected:
   // original geometry (never modified)
   int fx, fy, fw, fh;
 
-  int fframe;
+  int fframeWidth;
   uint16_t fframeColor;
   uint16_t fbgColor;
 
