@@ -20,4 +20,5 @@ public:
                int ty = -1);
 
   void draw() override;
+  void drawShift(int shift);
 };
