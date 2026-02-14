@@ -1,9 +1,11 @@
 #include "TFT_Screen.h"
 
-TFT_Screen::TFT_Screen(uint8_t spiRX, uint8_t spiTX, uint8_t spiCLK,
+TFT_Screen::TFT_Screen(uint8_t widthIn, uint8_t heigthIN, 
+                       uint8_t spiRX, uint8_t spiTX, uint8_t spiCLK,
                        uint8_t tftCS, uint8_t tftDC, uint8_t tftRST,
                        uint8_t touchCS, uint8_t touchIRQ)
-  : tft(tftCS, tftDC, tftRST),
+  : width(widthIn), heigth(heigthIN),
+    tft(tftCS, tftDC, tftRST),
     ts(touchCS, touchIRQ),
     spi_rx(spiRX),
     spi_tx(spiTX),
@@ -90,7 +92,10 @@ void TFT_Screen::demoText() {
   tft.setTextColor(ST77XX_RED);
   tft.println("Touch enabled !");
   tft.setTextColor(ST77XX_BLUE);
-  tft.println("128x160 pt.");
+  tft.print(tft.width());
+  tft.print("x");
+  tft.print(tft.height());
+  tft.println(" pt.");
 }
 
 // ---------- Demo 2: Shapes ----------

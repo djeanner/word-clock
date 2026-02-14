@@ -36,9 +36,8 @@ class TFT_Screen {
 private:
   Adafruit_ST7735 tft;
   XPT2046_Touchscreen ts;
-
+  uint8_t width, heigth;
   uint8_t spi_rx, spi_tx, spi_clk;
-
   uint8_t demoMode = 0;
   unsigned long lastSwitch = 0;
 
@@ -49,13 +48,16 @@ private:
   void demoAnim();
 
 public:
-  TFT_Screen(uint8_t spiRX, uint8_t spiTX, uint8_t spiCLK,
+  TFT_Screen(uint8_t width, uint8_t heigth,
+             uint8_t spiRX, uint8_t spiTX, uint8_t spiCLK,
              uint8_t tftCS, uint8_t tftDC, uint8_t tftRST,
              uint8_t touchCS, uint8_t touchIRQ);
 
   Adafruit_ST7735* getTFT();
   XPT2046_Touchscreen* getTS();
-void begin();
+  uint8_t getWidth() {return width;}
+  uint8_t getHeigth() {return heigth;}
+  void begin();
 
   // ---------- Touch drawing ----------
   void handleTouch();

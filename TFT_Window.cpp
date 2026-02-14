@@ -1,16 +1,18 @@
 #include "TFT_Window.h"
 
-TFT_Window::TFT_Window(Adafruit_ST7735* tft,
+TFT_Window::TFT_Window(TFT_Screen* aScreen,
                        int x, int y, int w, int h,
                        int frame,
                        uint16_t frameColor,
                        uint16_t bgColor)
-  : ftft(tft),
+  : fScreen(aScreen),
     fx(x), fy(y), fw(w), fh(h),
     fframe(frame),
     fframeColor(frameColor),
     fbgColor(bgColor)
-{}
+{
+  ftft = aScreen->getTFT();
+}
 
 Adafruit_ST7735* TFT_Window::getTFT() {return ftft;}
 

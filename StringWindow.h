@@ -8,7 +8,7 @@ class StringWindow : public TFT_Window {
   int ftx, fty;
 
 public:
-  StringWindow(Adafruit_ST7735* tft,
+  StringWindow(TFT_Screen* aScreen,
                int x, int y, int w, int h,
                int frame,
                uint16_t frameColor,

@@ -1,6 +1,6 @@
 #include "StringWindow.h"
 
-StringWindow::StringWindow(Adafruit_ST7735* tft,
+StringWindow::StringWindow(TFT_Screen* aScreen,
                            int x, int y, int w, int h,
                            int frame,
                            uint16_t frameColor,
@@ -10,7 +10,7 @@ StringWindow::StringWindow(Adafruit_ST7735* tft,
                            uint8_t textSize,
                            int tx,
                            int ty)
-  : TFT_Window(tft, x, y, w, h, frame, frameColor, bgColor),
+  : TFT_Window(aScreen, x, y, w, h, frame, frameColor, bgColor),
     ftext(text),
     ftextColor(textColor),
     ftextSize(textSize),
@@ -21,7 +21,8 @@ StringWindow::StringWindow(Adafruit_ST7735* tft,
 void StringWindow::draw() {
 
   TFT_Window::draw();
-
+  if (getWidth() > -1) {}
+  if (getHeight() > -1) {}
   int ix = fx + fframe;
   int iy = fy + fframe;
   int iw = fw - 2 * fframe;
