@@ -8,6 +8,9 @@ Therefore we could not use PWM
 
 We used a interrupts to control light intensity. 
 
+cp -rp ~/Documents/Arduino/test_rb_tft/*.cpp  ~/Documents/Arduino/test_rb_tft/*.h ~/Documents/Arduino/test_rb_tft/test_rb_tft.ino  .
+
+cp -rp  *cpp *h  test_rb_tft.ino ~/Documents/Arduino/test_rb_tft
 
 ...
 
