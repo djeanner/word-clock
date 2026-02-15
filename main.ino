@@ -50,9 +50,9 @@
 
 // delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
 #if (INTERRUPT_WORD_CLOCK == 0) && (SERIAL_DEBUG == 0) && (CLOCK_CONTROL_INTERRUPT == 0)
-  #define SLEEPORDELAYMS(ms) delay(ms)
+  #define SLEEPORDELAYMS(ms) sleep_ms(ms) // not compatible with interrupts
 #else
-  #define SLEEPORDELAYMS(ms) sleep_ms(ms)
+  #define SLEEPORDELAYMS(ms) delay(ms)
 #endif
 
 const bool debug8 = false;   // text
