@@ -510,7 +510,7 @@ class DCF77Decoder {
 
 public:
 
-  
+
   enum class DCF77Bit : uint8_t {
     BIT_M_ = 0,   // 0
     BIT_R_ = 15,  // 0 1: abnormal transmitter
@@ -527,7 +527,7 @@ public:
     MIN_10 = 25,  // Minute code
     MIN_20 = 26,  // Minute code
     MIN_40 = 27,  // Minute code
-    P1 = 28,      // parity DCF77_getParity(DCF77Bit::MIN_1, DCF77_MIN_40)
+    P1 = 28,      // parity DCF77_getParity(DCF77Bit::MIN_1, DCF77Bit::MIN_40)
 
     HOUR_1_ = 29,  // Hour code
     HOUR_2_ = 30,  // Hour code
@@ -535,7 +535,7 @@ public:
     HOUR_8_ = 32,  // Hour code
     HOUR_10 = 33,  // Hour code
     HOUR_20 = 34,  // Hour code
-    P2 = 35,       // parity DCF77_getParity(DCF77Bit::HOUR_1, DCF77_HOUR_20)
+    P2 = 35,       // parity DCF77_getParity(DCF77Bit::HOUR_1, DCF77Bit::HOUR_20)
 
     DAYM_1_ = 36,  // Day month code
     DAYM_2_ = 37,  // Day month code
@@ -563,7 +563,7 @@ public:
     YEAR_40 = 56,  // Year code
     YEAR_80 = 57,  // Year code
 
-    P3 = 58  // parity DCF77_getParity(DCF77Bit::DAYM_1_, DCF77_YEAR_80)
+    P3 = 58  // parity DCF77_getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)
   };
 
   /// @brief save integers and take average value ingoring smallest and largest Used for start of pulses
@@ -938,6 +938,32 @@ public:
     return sum % 2;
   }
 
+  // retuns -1 if not valid -2 if not relevant position 100+value is parity wrong
+  int getDigit(DCF77Bit zzz) const {
+      const int value = getDigitPrivate(zzz);
+      if (value < 0) {
+        return value;
+      }
+      if (zzz == DCF77Bit::MIN_8_) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else (return value;)
+      }
+      if (zzz == DCF77Bit::MIN_40) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else (return value;)
+      }
+      if (zzz == DCF77Bit::HOUR_8_) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else (return value;)
+      }
+      if (zzz == DCF77Bit::HOUR_20) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else (return value;)
+      }
+      // any other bit is in the last parity...
+      if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) {
+        return value + 100;
+      } else {
+        return value;
+      }
+  }
+
   // ---- decoded values ----
   int getHour() const {
     return getBit(DCF77Bit::HOUR_1_) * 1
@@ -1090,6 +1116,37 @@ public:
     point_to_start = idx % 60;
   }
 
+private:
+  int getDigitPrivate(DCF77Bit zzz) const {
+    if (zzz == DCF77Bit::MIN_8_) {return getDigitP(DCF77Bit::MIN_1, DCF77Bit::MIN_8_);}
+    if (zzz == DCF77Bit::MIN_40) {return getDigitP(DCF77Bit::MIN_10, DCF77Bit::MIN_40);}
+    if (zzz == DCF77Bit::HOUR_8_) {return getDigitP(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_8_);}
+    if (zzz == DCF77Bit::HOUR_20) {return getDigitP(DCF77Bit::HOUR_10, DCF77Bit::HOUR_20);}
+    if (zzz == DCF77Bit::DAYM_8_) {return getDigitP(DCF77Bit::DAYM_1_, DCF77Bit::DAYM_8_);}
+    if (zzz == DCF77Bit::DAYM_20) {return getDigitP(DCF77Bit::DAYM_10, DCF77Bit::DAYM_20);}
+    if (zzz == DCF77Bit::DAYW_4_) {return getDigitP(DCF77Bit::DAYW_1_, DCF77Bit::DAYW_4_);}
+    if (zzz == DCF77Bit::MONTH_8_) {return getDigitP(DCF77Bit::MONTH_1_, DCF77Bit::MONTH_8_);}
+    if (zzz == DCF77Bit::MONTH_10) {return getDigitP(DCF77Bit::MONTH_10, DCF77Bit::MONTH_10);}
+    if (zzz == DCF77Bit::YEAR_8_) {return getDigitP(DCF77Bit::YEAR_1_, DCF77Bit::YEAR_8_);}
+    if (zzz == DCF77Bit::YEAR_80) {return getDigitP(DCF77Bit::YEAR_10, DCF77Bit::YEAR_80);}
+    return -2;
+  }
+
+  // returns -1 if not valid 
+  int getDigitP(DCF77Bit first, DCF77Bit last) const {
+      size_t f = static_cast<size_t>(first);
+      size_t l = static_cast<size_t>(last);
+
+      int prod = 1;
+      int sum = 0;
+      for (size_t i = f; i <= l; i++) {
+        DCF77Bit b = static_cast<DCF77Bit>(i);
+        if (isBitUnknown(b)) return -1;
+        if (getBit(b)) sum += prod;
+        prod *= 2;
+      }
+      return sum;
+  }
 
 };
 
