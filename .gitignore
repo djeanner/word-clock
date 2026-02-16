@@ -1,2 +1,25 @@
-*.zip
-*.DS_Store
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Build artifacts
+build/
+*.egg-info/
+dist/
+*.egg
+*.whl
+
+# VSCode / IDE files (optional)
+.vscode/
+.idea/
+
+# MacOS system files
+.DS_Store
+
+# Temporary pip / setuptools files
+*.log
+pip-wheel-metadata/
+
+# pybind11 compiled extensions (optional if you rebuild)
+*.so
