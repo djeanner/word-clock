@@ -5,6 +5,7 @@
 #include <time.h>
 #include <TimeLib.h>
 #include "hardware/timer.h"
+#include "WordClock.h"
 
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
 
@@ -50,9 +51,9 @@
 
 // delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
 #if (INTERRUPT_WORD_CLOCK == 0) && (SERIAL_DEBUG == 0) && (CLOCK_CONTROL_INTERRUPT == 0)
-  #define SLEEPORDELAYMS(ms) sleep_ms(ms) // not compatible with interrupts
-#else
   #define SLEEPORDELAYMS(ms) delay(ms)
+#else
+  #define SLEEPORDELAYMS(ms) sleep_ms(ms)
 #endif
 
 const bool debug8 = false;   // text
@@ -74,6 +75,8 @@ bool thereIsAtimerClockControlAdjust_running = false;
 #ifndef CLOCK_CONTROL_INTERRUPT
 #define CLOCK_CONTROL_INTERRUPT 0
 #endif
+
+
 class ClockControl {
 private:
   bool qualityAccept;  // 0 take any time and does not running time correction. 1// used for correction
@@ -302,194 +305,6 @@ public:
 };
 
 
-class WordClock {
-private:
-const size_t totOutputPins;
-size_t *values;
-public:
-
-  enum class WordGP : uint8_t {
-    H1_ = 0,
-    H2_ = 1,
-    H3_ = 2,
-    H4_ = 3,
-    H5_ = 9,
-    H6_ = 5,
-    H7_ = 6,
-    H8_ = 7,
-    H9_ = 8,
-    H10 = 4,
-    H11 = 10,
-    H12 = 11,
-    // PM        = 12 
-    // AM        = 13
-    HTO = 14,
-    HPAST = 15,
-    HALF = 16,
-    M10 = 17,
-    M5 = 18,
-    MITIS = 12,  // NEW alwas on
-    MOCLOCK = 19,
-    MQUARTER = 20,
-    MTWENTY = 13,     // was 22
-    EXTRA = 21,       // new
-  };
-
-  WordClock() : totOutputPins(22) {
-    values = new size_t[totOutputPins];
-  }
-
-  ~WordClock() {
-    delete[] values;
-  }
-
-  void testLed() {
-    for (size_t p = 0; p < totOutputPins; p++) {
-      for (size_t lo = 0; lo < totOutputPins; lo++) {
-        const size_t pin = lo;
-        if (lo == p) {
-          values[pin] = 1;  //[pin] = 1;
-        } else {
-          values[pin] = 0;  //[pin] = 0;
-        }
-      }
-      delay(1000);
-    }
-  }
-
-  // Drive all pins LOW (open-collector active) output used as mosfet. Use INPUT mode as low states output
-  void ocDriveLowAll_fullON() {  // called by interrupt
-    for (size_t lo = 0; lo < totOutputPins; lo++) {
-      const size_t pin = lo;
-      if (values[pin] > 0) {
-        pinMode(pin, OUTPUT);
-        digitalWrite(pin, LOW);
-      } else {
-        pinMode(pin, INPUT);
-        //digitalWrite(pin, LOW); // dummy
-      }
-    }
-  }
-
-  void ocDriveLowAll_fullOFF() {  // called by interrupt
-    for (size_t lo = 0; lo < totOutputPins; lo++) {
-      pinMode(lo, INPUT);  // OFF State
-    }
-  }
-
-  // chop led current obsolete since taken cared by interrupts
-  void ocDriveWithoutInterrupt(size_t cycles = 10) {
-    for (size_t t = 0; t < cycles; t++) {
-      for (size_t lo = 0; lo < totOutputPins; lo++) {
-        pinMode(lo, INPUT);  // OFF State
-      }
-      delay(10);
-      for (size_t lo = 0; lo < totOutputPins; lo++) {
-        if (values[lo] > 0) {
-          pinMode(lo, OUTPUT);
-          digitalWrite(lo, LOW);
-        } else {
-          pinMode(lo, INPUT);
-          //digitalWrite(pin, LOW); // dummy
-        }
-      }
-      delay(1);
-    }
-    for (size_t lo = 0; lo < totOutputPins; lo++) {
-      pinMode(lo, INPUT);  // OFF State
-    }
-  }
-
-
-
-
-  void setWordClock(const int curMin, const int curHourtrue, const bool writeItIs = true) {
-    values[(size_t)WordGP::MITIS] = writeItIs ? 1 : 0;
-    int curHour = curHourtrue;  // displayed
-    if (curMin > 34) curHour++;
-
-    if (curMin < 5) values[(size_t)WordGP::MOCLOCK] = 1;
-    else values[(size_t)WordGP::MOCLOCK] = 0;
-    values[(size_t)WordGP::M5] = 0;
-    values[(size_t)WordGP::M10] = 0;
-    values[(size_t)WordGP::MQUARTER] = 0;
-    values[(size_t)WordGP::MTWENTY] = 0;
-    // past / to
-    if ((curMin >= 5) && (curMin < 35)) values[(size_t)WordGP::HPAST] = 1;
-    else values[(size_t)WordGP::HPAST] = 0;
-    if ((curMin >= 35) && (curMin < 60)) values[(size_t)WordGP::HTO] = 1;
-    else values[(size_t)WordGP::HTO] = 0;
-    // min
-    if ((curMin >= 0) && (curMin < 5)) values[(size_t)WordGP::MOCLOCK] = 1;
-    else values[(size_t)WordGP::MOCLOCK] = 0;
-    if ((curMin >= 5) && (curMin < 10)) values[(size_t)WordGP::M5] = 1;
-    if ((curMin >= 10) && (curMin < 15)) values[(size_t)WordGP::M10] = 1;
-    if ((curMin >= 15) && (curMin < 20)) values[(size_t)WordGP::MQUARTER] = 1;
-    if ((curMin >= 20) && (curMin < 25)) values[(size_t)WordGP::MTWENTY] = 1;
-    if ((curMin >= 25) && (curMin < 30)) {
-      values[(size_t)WordGP::MTWENTY] = 1;
-      values[(size_t)WordGP::M5] = 1;
-    }
-    if ((curMin >= 30) && (curMin < 35)) values[(size_t)WordGP::HALF] = 1;
-    else values[(size_t)WordGP::HALF] = 0;
-    if ((curMin >= 35) && (curMin < 40)) {
-      values[(size_t)WordGP::MTWENTY] = 1;
-      values[(size_t)WordGP::M5] = 1;
-    }
-    if ((curMin >= 40) && (curMin < 45)) values[(size_t)WordGP::MTWENTY] = 1;
-    if ((curMin >= 45) && (curMin < 50)) values[(size_t)WordGP::MQUARTER] = 1;
-    if ((curMin >= 50) && (curMin < 55)) values[(size_t)WordGP::M10] = 1;
-    if ((curMin >= 55) && (curMin < 60)) values[(size_t)WordGP::M5] = 1;
-    // hours
-    if ((curHour == 0) || (curHour == 12) || (curHour == 24)) values[(size_t)WordGP::H12] = 1;
-    else values[(size_t)WordGP::H12] = 0;
-    if ((curHour == 1) || (curHour == 13)) values[(size_t)WordGP::H1_] = 1;
-    else values[(size_t)WordGP::H1_] = 0;
-    if ((curHour == 2) || (curHour == 14)) values[(size_t)WordGP::H2_] = 1;
-    else values[(size_t)WordGP::H2_] = 0;
-    if ((curHour == 3) || (curHour == 15)) values[(size_t)WordGP::H3_] = 1;
-    else values[(size_t)WordGP::H3_] = 0;
-    if ((curHour == 4) || (curHour == 16)) values[(size_t)WordGP::H4_] = 1;
-    else values[(size_t)WordGP::H4_] = 0;
-    if ((curHour == 5) || (curHour == 17)) values[(size_t)WordGP::H5_] = 1;
-    else values[(size_t)WordGP::H5_] = 0;
-    if ((curHour == 6) || (curHour == 18)) values[(size_t)WordGP::H6_] = 1;
-    else values[(size_t)WordGP::H6_] = 0;
-    if ((curHour == 7) || (curHour == 19)) values[(size_t)WordGP::H7_] = 1;
-    else values[(size_t)WordGP::H7_] = 0;
-    if ((curHour == 8) || (curHour == 20)) values[(size_t)WordGP::H8_] = 1;
-    else values[(size_t)WordGP::H8_] = 0;
-    if ((curHour == 9) || (curHour == 21)) values[(size_t)WordGP::H9_] = 1;
-    else values[(size_t)WordGP::H9_] = 0;
-    if ((curHour == 10) || (curHour == 22)) values[(size_t)WordGP::H10] = 1;
-    else values[(size_t)WordGP::H10] = 0;
-    if ((curHour == 11) || (curHour == 23)) values[(size_t)WordGP::H11] = 1;
-    else values[(size_t)WordGP::H11] = 0;
-    // AM
-    // if ((curHourtrue < 12) || (curHourtrue == 24)) {values[AM] = 1; values[PM] = 0;} else {values[AM] = 0;values[PM] = 1;}
-  }
-
-  void debugSetHoursLeds(int unitDigit = 0) {
-    for (size_t i = 0; i < totOutputPins; i++) {
-      values[i] = 0;
-    }
-    if (unitDigit == 1) { values[(size_t)WordGP::H1_] = 1; }
-    if (unitDigit == 2) { values[(size_t)WordGP::H2_] = 1; }
-    if (unitDigit == 3) { values[(size_t)WordGP::H3_] = 1; }
-    if (unitDigit == 4) { values[(size_t)WordGP::H4_] = 1; }
-    if (unitDigit == 5) { values[(size_t)WordGP::H5_] = 1; }
-    if (unitDigit == 6) { values[(size_t)WordGP::H6_] = 1; }
-    if (unitDigit == 7) { values[(size_t)WordGP::H7_] = 1; }
-    if (unitDigit == 8) { values[(size_t)WordGP::H8_] = 1; }
-    if (unitDigit == 9) { values[(size_t)WordGP::H9_] = 1; }
-    if (unitDigit == 10) { values[(size_t)WordGP::H10] = 1; }
-    if (unitDigit == 11) { values[(size_t)WordGP::H11] = 1; }
-    if (unitDigit == 12) { values[(size_t)WordGP::H12] = 1; }
-    return;
-  }
-
-};
-
 WordClock theWordClock;
 
 ClockControl theClockControl(10);
@@ -510,7 +325,7 @@ class DCF77Decoder {
 
 public:
 
-
+  
   enum class DCF77Bit : uint8_t {
     BIT_M_ = 0,   // 0
     BIT_R_ = 15,  // 0 1: abnormal transmitter
@@ -527,7 +342,7 @@ public:
     MIN_10 = 25,  // Minute code
     MIN_20 = 26,  // Minute code
     MIN_40 = 27,  // Minute code
-    P1 = 28,      // parity DCF77_getParity(DCF77Bit::MIN_1, DCF77Bit::MIN_40)
+    P1 = 28,      // parity DCF77_getParity(DCF77Bit::MIN_1, DCF77_MIN_40)
 
     HOUR_1_ = 29,  // Hour code
     HOUR_2_ = 30,  // Hour code
@@ -535,7 +350,7 @@ public:
     HOUR_8_ = 32,  // Hour code
     HOUR_10 = 33,  // Hour code
     HOUR_20 = 34,  // Hour code
-    P2 = 35,       // parity DCF77_getParity(DCF77Bit::HOUR_1, DCF77Bit::HOUR_20)
+    P2 = 35,       // parity DCF77_getParity(DCF77Bit::HOUR_1, DCF77_HOUR_20)
 
     DAYM_1_ = 36,  // Day month code
     DAYM_2_ = 37,  // Day month code
@@ -563,7 +378,7 @@ public:
     YEAR_40 = 56,  // Year code
     YEAR_80 = 57,  // Year code
 
-    P3 = 58  // parity DCF77_getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)
+    P3 = 58  // parity DCF77_getParity(DCF77Bit::DAYM_1_, DCF77_YEAR_80)
   };
 
   /// @brief save integers and take average value ingoring smallest and largest Used for start of pulses
@@ -938,31 +753,7 @@ public:
     return sum % 2;
   }
 
-  // retuns -1 if not valid -2 if not relevant position 100+value is parity wrong
-  int getDigit(DCF77Bit zzz) const {
-      const int value = getDigitPrivate(zzz);
-      if (value < 0) {
-        return value;
-      }
-      if (zzz == DCF77Bit::MIN_8_) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else (return value;)
-      }
-      if (zzz == DCF77Bit::MIN_40) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else (return value;)
-      }
-      if (zzz == DCF77Bit::HOUR_8_) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else (return value;)
-      }
-      if (zzz == DCF77Bit::HOUR_20) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else (return value;)
-      }
-      // any other bit is in the last parity...
-      if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) {
-        return value + 100;
-      } else {
-        return value;
-      }
-  }
+  
 
   // ---- decoded values ----
   int getHour() const {
@@ -1115,10 +906,34 @@ public:
   void setStart(size_t idx) {
     point_to_start = idx % 60;
   }
-
+// retuns -1 if not valid -2 if not relevant position 100+value is parity wrong
+  int getDigit(DCF77Bit zzz) const {
+      const int value = getDigitPrivate(zzz);
+      if (value < 0) {
+        return value;
+      }
+      if (zzz == DCF77Bit::MIN_8_) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else {return value;}
+      }
+      if (zzz == DCF77Bit::MIN_40) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else {return value;}
+      }
+      if (zzz == DCF77Bit::HOUR_8_) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else {return value;}
+      }
+      if (zzz == DCF77Bit::HOUR_20) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else {return value;}
+      }
+      // any other bit is in the last parity...
+      if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) {
+        return value + 100;
+      } else {
+        return value;
+      }
+  }
 private:
   int getDigitPrivate(DCF77Bit zzz) const {
-    if (zzz == DCF77Bit::MIN_8_) {return getDigitP(DCF77Bit::MIN_1, DCF77Bit::MIN_8_);}
+    if (zzz == DCF77Bit::MIN_8_) {return getDigitP(DCF77Bit::MIN_1_, DCF77Bit::MIN_8_);}
     if (zzz == DCF77Bit::MIN_40) {return getDigitP(DCF77Bit::MIN_10, DCF77Bit::MIN_40);}
     if (zzz == DCF77Bit::HOUR_8_) {return getDigitP(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_8_);}
     if (zzz == DCF77Bit::HOUR_20) {return getDigitP(DCF77Bit::HOUR_10, DCF77Bit::HOUR_20);}
@@ -1149,8 +964,6 @@ private:
   }
 
 };
-
-
 
 
 #if INTERRUPT_WORD_CLOCK

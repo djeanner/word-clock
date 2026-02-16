@@ -11,7 +11,8 @@ We used a interrupts to control light intensity.
 cp -rp ~/Documents/Arduino/test_rb_tft/*.cpp  ~/Documents/Arduino/test_rb_tft/*.h ~/Documents/Arduino/test_rb_tft/test_rb_tft.ino  .
 
 cp -rp  *cpp *h  test_rb_tft.ino ~/Documents/Arduino/test_rb_tft
-
+cp -rp WordClock.cpp WordClock.h ~/Documents/Arduino/testDelCompiling
+cp p main.ino ~/Documents/Arduino/testDelCompiling/testDelCompiling.ino
 ...
 
 20:49:53.421 -> DCF77 pin : 28
