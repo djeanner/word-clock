@@ -27,6 +27,7 @@ void loop() {
 	if (demoMode) {
 	 screen.update();
 	} else {
+		// short text not moving ...
 	  StringWindow win(&screen,
 	                 10, 10, 120, 16,
 	                 1,
@@ -35,6 +36,7 @@ void loop() {
 	                 "Hello world!",
 	                 ST77XX_GREEN,
 	                 1);
+		// long text moving ...
 		StringWindow win2(&screen,
 	                 10, 30, 120, 28,
 	                 1,
@@ -43,6 +45,7 @@ void loop() {
 	                 "   Hello world  and all and all jkkkjljlh 123 123 124gggggg     ",
 	                 ST77XX_RED,
 	                 2);
+		// DCF77Window
 		DCF77Window win3(&screen,
 	                 10, 80, 126, 40,
 	                 1,
