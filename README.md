@@ -12,7 +12,8 @@ cp -rp ~/Documents/Arduino/test_rb_tft/*.cpp  ~/Documents/Arduino/test_rb_tft/*.
 
 cp -rp  *cpp *h  test_rb_tft.ino ~/Documents/Arduino/test_rb_tft
 cp -rp WordClock.cpp WordClock.h ~/Documents/Arduino/testDelCompiling
-cp p main.ino ~/Documents/Arduino/testDelCompiling/testDelCompiling.ino
+cp -rp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h ~/Documents/Arduino/testDelCompiling
+cp -p main.ino ~/Documents/Arduino/testDelCompiling/testDelCompiling.ino
 ...
 
 20:49:53.421 -> DCF77 pin : 28

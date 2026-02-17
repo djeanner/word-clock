@@ -1,23 +1,19 @@
 #include "DCF77Decoder.h"
 
 #if SERIAL_DEBUG
-#define DBG_BEGIN(x) Serial.begin(x)
 #define DBG_PRINT(x) Serial.print(x)
 #define DBG_PRINTLN(x) Serial.println(x)
 #else
-#define DBG_BEGIN(x)
 #define DBG_PRINT(x)
 #define DBG_PRINTLN(x)
 #endif
 
-  // contructor
-  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in3, bool in5, bool in8, bool in9, pin_size_t aPin) : 
+  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in5, bool in8, bool in9, pin_size_t aPin) : 
   storedDCF77upPulsesTimes(50), 
   fRadioInput(aInput), 
   fMinValAntenna(aLongInt), 
   fLedPin(aPin),
   debug2(in2),
-  debug3(in3),
   debug5(in5),
   debug8(in8),
   debug9(in9) {

@@ -74,6 +74,10 @@
     "__split_buffer": "cpp",
     "string": "cpp",
     "unordered_map": "cpp",
-    "print": "cpp"
+    "print": "cpp",
+    "__hash_table": "cpp",
+    "array": "cpp",
+    "iterator": "cpp",
+    "string_view": "cpp"
   }
 }

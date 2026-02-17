@@ -63,9 +63,9 @@ const bool debug5 = false;   // display long pause pulses on the fly
 bool debug2 = !debug8;       // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
 
-
+// needs some macro  ---- dont move higher up
+#include "ClockControl.h"
 #include "DCF77Decoder.h"
-
 
 
 #if CLOCK_CONTROL_INTERRUPT
@@ -86,7 +86,7 @@ bool thereIsAtimerClockControlAdjust_running = false;
 
 WordClock theWordClock;
 
-ClockControl theClockControl(10, debug2, debug3, debug5, debug8, debug9);
+ClockControl theClockControl(10, debug3);
 
 #if CLOCK_CONTROL_INTERRUPT
 bool clockControlAdjustCallback(repeating_timer_t *rt) {
@@ -99,10 +99,6 @@ bool clockControlAdjustCallback(repeating_timer_t *rt) {
 #ifndef CLOCK_CONTROL_INTERRUPT
 #define CLOCK_CONTROL_INTERRUPT 1
 #endif
-/// @brief listen to analogic input of DCF77 antenna and saves time with the listen method
-
-
-
 
 #if INTERRUPT_WORD_CLOCK
 // Interrups to control led brightness without flickering
@@ -135,7 +131,7 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 }
 #endif // INTERRUPT_WORD_CLOCK
 
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug3, debug5, debug8, debug9, LEDPIN);
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN);
 
 void setup() {
 #if INTERRUPT_WORD_CLOCK
