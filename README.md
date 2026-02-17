@@ -260,6 +260,8 @@ cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp WordClock.h testClock
 cp main.ino testClock/testClock.ino
 cd testClock 
+	echo "**********************************************************************************" >> serial.txt
+	date >> serial.txt
 	echo "************* Compile for pico pi"
 	arduino-cli compile --fqbn rp2040:rp2040:rpipico  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DTEST_CLOCK=1"
 	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipico --input-dir ./build
@@ -269,6 +271,6 @@ cd testClock
 	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
 
 	echo "************* shows stream from serial port (stop with CTRL-C)"
-	cd ..
 	 
-DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a serial.txt
+	DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a serial.txt
+cd ..
