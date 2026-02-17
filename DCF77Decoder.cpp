@@ -1,27 +1,34 @@
 #include "DCF77Decoder.h"
 
-#if SERIAL_DEBUG
-#define DBG_PRINT(x) Serial.print(x)
-#define DBG_PRINTLN(x) Serial.println(x)
-#else
-#define DBG_PRINT(x)
-#define DBG_PRINTLN(x)
-#endif
-
-  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in5, bool in8, bool in9, pin_size_t aPin) : 
+  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in5, bool in8, bool in9, pin_size_t aPin, bool useSerial, std::function<void(String)> afprocessor) : 
   storedDCF77upPulsesTimes(50), 
   fRadioInput(aInput), 
   fMinValAntenna(aLongInt), 
-  fLedPin(aPin),
   debug2(in2),
   debug5(in5),
   debug8(in8),
-  debug9(in9) {
+  debug9(in9), 
+  fLedPin(aPin),
+  fUseSerial(useSerial), 
+  fprocessor(afprocessor) {
     reset();
   }
 
   // destructor
-  DCF77Decoder::~DCF77Decoder() {};
+  DCF77Decoder::~DCF77Decoder() {}
+
+  void DCF77Decoder::thisPrintLN(String aString) {
+	    thisPrint(aString + "\n");
+  }
+  
+  void DCF77Decoder::thisPrint(String aString) {
+	if (fprocessor) {
+		fprocessor(aString);
+	} 
+	if (fUseSerial) {
+		Serial.print(aString);
+	}
+  }
 
   void DCF77Decoder::initListen() {
     previVal = 0;
@@ -57,31 +64,31 @@
       // dump info
       const size_t numberPerLine = cursor_on ? 6 : 60;
       if ((indexSec % numberPerLine) == 0 && debug8) {
-        if (cursor_on) { DBG_PRINTLN(); }
-        DBG_PRINT("txt:[");
+        if (cursor_on) { thisPrintLN(); }
+        thisPrint("txt:[");
         String stringForLine = "";
         for (size_t i = 0; i < 60; i++) {
           if (i == indexSec && cursor_on) {
-            DBG_PRINT("_");
+            thisPrint("_");
           } else {
-            if (raw(i) == 2) { DBG_PRINT(" "); }
+            if (raw(i) == 2) { thisPrint(" "); }
             if (raw(i) == 3) {
-              DBG_PRINT("£");
+              thisPrint("£");
               const size_t store_val = getStart();
               setStart((i + 0) % 60);
               stringForLine += getString() + " ";
               setStart(store_val);
             }
-            if (raw(i) == 0) { DBG_PRINT("-"); }
-            if (raw(i) == 1) { DBG_PRINT("+"); }
+            if (raw(i) == 0) { thisPrint("-"); }
+            if (raw(i) == 1) { thisPrint("+"); }
           }
         }
-        DBG_PRINT("],");
-        if (isRingFull()) { DBG_PRINT("L"); }
-        DBG_PRINT("ms:");
-        DBG_PRINT(String((long)getAverageCore()));  // miliStore
-        DBG_PRINT(", ");
-        DBG_PRINTLN(stringForLine);
+        thisPrint("],");
+        if (isRingFull()) { thisPrint("L"); }
+        thisPrint("ms:");
+        thisPrint(String((long)getAverageCore()));  // miliStore
+        thisPrint(", ");
+        thisPrintLN(stringForLine);
       }
       // IMPORTNT : Here may want to reload each bit at each cycle be having next line uncommented
       //valueIndexSec[indexSec] = 2;
@@ -118,13 +125,13 @@
       const int mi2 = 1000 - margin;
       const int ma2 = 1000 + margin;
       if (durCycleMili > mi2 && durCycleMili < ma2) {
-        if (debug5) DBG_PRINT("^");
-        if (debug5) DBG_PRINT(milisOnly);
-        if (debug5) DBG_PRINT("<");
+        if (debug5) thisPrint("^");
+        if (debug5) thisPrint(String((long)milisOnly));
+        if (debug5) thisPrint("<");
         pushDuration(milisOnly);
-        //DBG_PRINT(storedDCF77upPulsesTimes.dump());
-        if (debug5) DBG_PRINT(getAverageCore());
-        if (debug5) DBG_PRINT(">");
+        //thisPrint(storedDCF77upPulsesTimes.dump());
+        if (debug5) thisPrint(String((long)getAverageCore()));
+        if (debug5) thisPrint(">");
       }
       previVal = inVal;
     }
@@ -177,24 +184,24 @@
             }
             if (cursor_on) {
               int signedDeltaStart = circularDelta(startUp % 1000, getAverageCore());
-              if (debug9) DBG_PRINT(" ");
-              if (debug9) DBG_PRINT(signedDeltaStart);
+              if (debug9) thisPrint(" ");
+              if (debug9) thisPrint(String((long)signedDeltaStart));
               if (signedDeltaStart > 0) {
-                if (debug9) DBG_PRINT("+");
+                if (debug9) thisPrint("+");
               }
-              if (debug9) DBG_PRINT("(");
-              if (debug9) DBG_PRINT(pulse);
+              if (debug9) thisPrint("(");
+              if (debug9) thisPrint(pulse);
               if (deltaDUR > 0) {
-                if (debug9) DBG_PRINT("+");
+                if (debug9) thisPrint("+");
               }
-              if (debug9) DBG_PRINT(deltaDUR);
-              if (debug9) DBG_PRINT(")");
+              if (debug9) thisPrint(String((long)deltaDUR));
+              if (debug9) thisPrint(")");
             }
           } else {
-            if (debug9) DBG_PRINT("X");  // wrong start
+            if (debug9) thisPrint("X");  // wrong start
           }
         } else {
-          if (debug9) DBG_PRINT("x");  // wrong duration
+          if (debug9) thisPrint("x");  // wrong duration
         }
       }
       previVal = inVal;
@@ -395,7 +402,7 @@
     retString += "" + String(getDayWString()) + " ";
     retString += getMonthString() + " ";
     retString += String(getDayM()) + " ";
-    retString += String(2000 + getYear()) + " ";
+    retString += String(String((long)(2000 + getYear()))) + " ";
     if (areAllOK()) {
       retString += "AllT";
     } else {

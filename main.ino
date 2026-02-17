@@ -130,7 +130,11 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 }
 #endif // INTERRUPT_WORD_CLOCK
 
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN);
+#if SERIAL_DEBUG
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
+#else
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
+#endif
 
 void setup() {
 #if INTERRUPT_WORD_CLOCK

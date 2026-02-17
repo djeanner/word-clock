@@ -268,7 +268,7 @@ cd testClock
 	echo "************* setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
 
-	echo "************* shows stream from serial port (stop with CTRL-C)" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* shows stream from serial port (stop with CTRL-C)"
 	cd ..
-cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 	 
+DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a serial.txt
