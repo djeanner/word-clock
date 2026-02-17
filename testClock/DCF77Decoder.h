@@ -156,7 +156,6 @@ public:
     }
   };
 
-
 private:
 
   Ring storedDCF77upPulsesTimes;

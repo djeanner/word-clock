@@ -66,7 +66,7 @@
       if ((indexSec % numberPerLine) == 0 && debug8) {
         if (cursor_on) { thisPrintLN(); }
         thisPrint("txt:[");
-        String stringForLine = "";
+        // too slow //String stringForLine = "";
         for (size_t i = 0; i < 60; i++) {
           if (i == indexSec && cursor_on) {
             thisPrint("_");
@@ -74,10 +74,10 @@
             if (raw(i) == 2) { thisPrint(" "); }
             if (raw(i) == 3) {
               thisPrint("£");
-              const size_t store_val = getStart();
-              setStart((i + 0) % 60);
-              stringForLine += getString() + " ";
-              setStart(store_val);
+              // too slow // const size_t store_val = getStart();
+              // too slow //setStart((i + 0) % 60);
+              // too slow //stringForLine += getString() + " ";
+              // too slow //setStart(store_val);
             }
             if (raw(i) == 0) { thisPrint("-"); }
             if (raw(i) == 1) { thisPrint("+"); }
@@ -88,7 +88,8 @@
         thisPrint("ms:");
         thisPrint(String((long)getAverageCore()));  // miliStore
         thisPrint(", ");
-        thisPrintLN(stringForLine);
+        // too slow //thisPrintLN(stringForLine);
+        thisPrintLN();
       }
       // IMPORTNT : Here may want to reload each bit at each cycle be having next line uncommented
       //valueIndexSec[indexSec] = 2;

@@ -19,8 +19,8 @@ private:
 public:
   ClockControl(size_t size, bool in3, bool abool, std::function<void(String)> afprocessor = {});
   ~ClockControl() ;
-  void thisPrint(String aString) ;
-  void thisPrintLN(String aString) ;
+  void thisPrint(String aString = "") ;
+  void thisPrintLN(String aString = "") ;
   bool isReliable() ;
   time_t getLastTime() ;
   long long getLastCorrection() ;

@@ -131,6 +131,7 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 #endif // INTERRUPT_WORD_CLOCK
 
 #if SERIAL_DEBUG
+//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, [&myClass](String aString) {return myClass.myMethod(aString);});
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
@@ -168,6 +169,8 @@ if (debug2) theWordClock.debugSetHoursLeds(1);
   digitalWrite(LEDPIN, HIGH);
   delay(300);
   digitalWrite(LEDPIN, LOW);
+
+  delay(2000);
 
   DBG_PRINTLN("End setup");
   if (debug2) theWordClock.debugSetHoursLeds(2);
