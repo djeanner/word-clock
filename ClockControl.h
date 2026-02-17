@@ -1,9 +1,9 @@
 #pragma once
 #include <Arduino.h> // add in header of classes
+#include <functional>
 #include <time.h>
 #include <TimeLib.h>
 #include "hardware/timer.h"
-
 class ClockControl {
 private:
 	bool qualityAccept;  // 0 take any time and does not running time correction. 1// used for correction
@@ -11,17 +11,15 @@ private:
 	long int period;
 	bool isPositiveCorrection;
 	const size_t fsize;
-	bool debug2;
-	bool debug3;
-	bool debug5;
-	bool debug8;
-	bool debug9;
+	bool fdebug;
+	std::function<void(String)> fprocessor;
 	time_t *tArray;
 	long long *rArray;
-
 public:
-  ClockControl(size_t size, bool in3);
+  ClockControl(size_t size, bool in3, std::function<void(String)> afprocessor = {});
   ~ClockControl() ;
+  void thisPrint(String aString) ;
+  void thisPrintLN(String aString) ;
   bool isReliable() ;
   time_t getLastTime() ;
   long long getLastCorrection() ;

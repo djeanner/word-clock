@@ -8,16 +8,25 @@
 #define DBG_PRINTLN(x)
 #endif
 
-  ClockControl::ClockControl(size_t size, bool in3)
+  ClockControl::ClockControl(size_t size, bool in3, std::function<void(String)> afprocessor)
     : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size), 
-  debug3(in3) {
+  fdebug(in3), fprocessor(afprocessor) {
     tArray = new time_t[size];
     rArray = new long long[size];
-    ;
   }
   ClockControl::~ClockControl() {
     delete[] tArray;
     delete[] rArray;
+  }
+  void ClockControl::thisPrintLN(String aString) {
+	    thisPrint(aString + "\n");
+  }
+  void ClockControl::thisPrint(String aString) {
+	if (fprocessor) {
+		fprocessor(aString);
+	} else {
+		if (fdebug) DBG_PRINT(aString);
+	}
   }
   bool ClockControl::isReliable() {
     return qualityAccept;
@@ -121,51 +130,49 @@
     const long long diff = (long long)t - (long long)tNow;  // error in seconds / if positive internal time is too slow
     const long long unsignedDiff = llabs(diff);
   
-    if (debug3) DBG_PRINTLN("");
-    if (debug3) DBG_PRINT("Time submitted for validation ");
-    if (debug3) DBG_PRINT("Earlyer data reliable : ");
-    if (debug3) {
-      if (qualityAccept) DBG_PRINTLN("Y");
-      else DBG_PRINTLN("N");
-    }
-    if (debug3) DBG_PRINT("tested time      : ");
-    if (debug3) DBG_PRINTLN(stringTime(t));
-    if (debug3) DBG_PRINT("now :            : ");
-    if (debug3) DBG_PRINTLN(stringTime(tNow));
+    thisPrintLN("");
+    thisPrint("Time submitted for validation ");
+    thisPrint("Earlyer data reliable : ");
+      if (qualityAccept) {thisPrintLN("Y");}
+      else {thisPrintLN("N");}
+    thisPrint("tested time      : ");
+    thisPrintLN(stringTime(t));
+    thisPrint("now :            : ");
+    thisPrintLN(stringTime(tNow));
   
     const bool critConsistent = (unsignedDiff < 100);
     if (!qualityAccept) {
-      if (debug3) DBG_PRINT("Crit : |");
-      if (debug3) DBG_PRINT(diff);
-      if (debug3) DBG_PRINTLN("| < 100");
+      thisPrint("Crit : |");
+      thisPrint(String((long)diff));
+      thisPrintLN("| < 100");
       setTime(t);
       // see if can consider switch to reliable
       if (critConsistent) {
-        if (debug3) DBG_PRINTLN("Crit OK: Switch to reliable");
+        thisPrintLN("Crit OK: Switch to reliable");
         qualityAccept = true;
       } else {
-        if (debug3) DBG_PRINTLN("Crit failed: Time is not consistent (normal if first call). It is not considered as reliable");
+        thisPrintLN("Crit failed: Time is not consistent (normal if first call). It is not considered as reliable");
         return;
       }
     }
     // dont use else because qualityAccept changes in if
     if (qualityAccept) {
       if (!critConsistent) {
-        if (debug3) DBG_PRINTLN("Crit failed: Time is not consistent: ignored");
+        thisPrintLN("Crit failed: Time is not consistent: ignored");
         return;
       }
       
 
       if (pointer == 0) {
-        if (debug3) DBG_PRINTLN("Crit consistent : first time quality, save time but not calculating error...");
+        thisPrintLN("Crit consistent : first time quality, save time but not calculating error...");
         setTime(t);  // correct time
         storeDate(tNow, 0LL);
         return;
       }
-      if (debug3) DBG_PRINTLN("Crit consistent : consider calculate error for fine tuning in quality mode");
+      thisPrintLN("Crit consistent : consider calculate error for fine tuning in quality mode");
       const time_t lastTime = getLastTime();
-      if (debug3) DBG_PRINT("Last stored time : ");
-      if (debug3) DBG_PRINTLN(stringTime(lastTime));
+      thisPrint("Last stored time : ");
+      thisPrintLN(stringTime(lastTime));
       
       const long long secondsSinceLastTime = (long long)t - (long long)lastTime;
       const long long secondSinceLastAbs = llabs(secondsSinceLastTime);
@@ -173,54 +180,52 @@
       const long long minNumberSeconds = 60 * 60;  // 60 * 60 : 1 Hour
       const bool critLongEnough = secondSinceLastAbs > minNumberSeconds;
       if (!critLongEnough) {
-        if (debug3) DBG_PRINTLN(" Time since last stored time not long enough for good precision rejects time in quality mode");
-        if (debug3) DBG_PRINT(secondSinceLastAbs);
-        if (debug3) DBG_PRINT(" < ");
-        if (debug3) DBG_PRINT(minNumberSeconds);
-        if (debug3) DBG_PRINTLN(" s.");
+        thisPrintLN(" Time since last stored time not long enough for good precision rejects time in quality mode");
+        thisPrint(String((long)secondSinceLastAbs));
+        thisPrint(" < ");
+        thisPrint(String((long)minNumberSeconds));
+        thisPrintLN(" s.");
         return;
       }
       setTime(t);  // correct time
-      if (debug3) DBG_PRINTLN("Crit consistent : calculate error for fine tuning in quality mode");
+      thisPrintLN("Crit consistent : calculate error for fine tuning in quality mode");
 
-      if (debug3) DBG_PRINTLN("Calculate time correction...");
+      thisPrintLN("Calculate time correction...");
       const long long durationOneDay = 24 * 60 * 60;
       long long errorSecondsPerDay = (diff * durationOneDay) / ((long long)tNow - (long long)lastTime);
-      if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
-      if (debug3) DBG_PRINT(diff);
-      if (debug3) DBG_PRINT(" * ");
-      if (debug3) DBG_PRINT(durationOneDay);
-      if (debug3) DBG_PRINT(" / (");
-      if (debug3) DBG_PRINT(tNow);
-      if (debug3) DBG_PRINT(" - ");
-      if (debug3) DBG_PRINT(lastTime);
-      if (debug3) DBG_PRINT(") = ");
-      if (debug3) DBG_PRINTLN(errorSecondsPerDay);
+      thisPrint(" errorSecondsPerDay = ");
+      thisPrint(String((long)diff));
+      thisPrint(" * ");
+      thisPrint(String((long)durationOneDay));
+      thisPrint(" / (");
+      thisPrint(String((long)tNow));
+      thisPrint(" - ");
+      thisPrint(String((long)lastTime));
+      thisPrint(") = ");
+      thisPrintLN(String((int)errorSecondsPerDay));
 
-      if (debug3) DBG_PRINT(" errorSecondsPerDay = ");
-      if (debug3) DBG_PRINT(diff);
-      if (debug3) DBG_PRINT(" * ");
-      if (debug3) DBG_PRINT(durationOneDay);
-      if (debug3) DBG_PRINT(" / (");
-      if (debug3) DBG_PRINT(tNow - lastTime);
-      if (debug3) DBG_PRINT(") = ");
-      if (debug3) DBG_PRINTLN(errorSecondsPerDay);
+      thisPrint(" errorSecondsPerDay = ");
+      thisPrint(String((long)diff));
+      thisPrint(" * ");
+      thisPrint(String((long)durationOneDay));
+      thisPrint(" / (");
+      thisPrint(String((long)(tNow - lastTime)));
+      thisPrint(") = ");
+      thisPrintLN(String((int)errorSecondsPerDay));
 
       errorSecondsPerDay += getLastCorrection();
 
-      if (debug3) DBG_PRINT("Including previous correction : ");
-      if (debug3) DBG_PRINT(errorSecondsPerDay);
-      if (debug3) DBG_PRINTLN("");
+      thisPrint("Including previous correction : ");
+      thisPrint(String((long)errorSecondsPerDay));
+      thisPrintLN("");
 
       storeDate(tNow, errorSecondsPerDay);
-      if (debug3) DBG_PRINT(" Period ");
-      if (debug3) {
-        if (isPositiveCorrection) DBG_PRINT("add ");
-        else DBG_PRINT("subtract ");
-      }
-      if (debug3) DBG_PRINT("a second : every ");
-      if (debug3) DBG_PRINT(period);
-      if (debug3) DBG_PRINTLN(" s");
+      thisPrint(" Period ");
+      if (isPositiveCorrection) {thisPrint("add ");}
+      else {thisPrint("subtract ");}
+      thisPrint("a second : every ");
+      thisPrint(String((long)period));
+      thisPrintLN(" s");
     }
     return;
   }

@@ -51,12 +51,12 @@
 
 // delay_ms stops the clock of the CPU. not compatible with serial or other interrupt-based services
 #if (INTERRUPT_WORD_CLOCK == 0) && (SERIAL_DEBUG == 0) && (CLOCK_CONTROL_INTERRUPT == 0)
-  #define SLEEPORDELAYMS(ms) delay(ms)
-#else
   #define SLEEPORDELAYMS(ms) sleep_ms(ms)
+#else
+  #define SLEEPORDELAYMS(ms) delay(ms)
 #endif
 
-const bool debug8 = false;   // text
+const bool debug8 = true;   // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
@@ -67,7 +67,6 @@ const bool debug3 = true;    // dump info about the validation process of times
 #include "ClockControl.h"
 #include "DCF77Decoder.h"
 
-
 #if CLOCK_CONTROL_INTERRUPT
 
 // -------- interrupt function prototypes --------
@@ -76,13 +75,9 @@ repeating_timer_t timerClockControlAdjust;
 bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
-
 #ifndef CLOCK_CONTROL_INTERRUPT
 #define CLOCK_CONTROL_INTERRUPT 0
 #endif
-
-
-
 
 WordClock theWordClock;
 
@@ -150,7 +145,7 @@ if (debug2) theWordClock.debugSetHoursLeds(1);
 
   analogReadResolution(12);
 
-  DBG_PRINT("DCF77 pin : ");
+  DBG_PRINT("The DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
   // Start with everything released
