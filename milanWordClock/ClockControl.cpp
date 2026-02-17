@@ -1,8 +1,16 @@
 #include "ClockControl.h"
 
-  ClockControl::ClockControl(size_t size, bool in3, bool useSerial, std::function<void(String)> afprocessor)
+#if SERIAL_DEBUG
+#define DBG_PRINT(x) Serial.print(x)
+#define DBG_PRINTLN(x) Serial.println(x)
+#else
+#define DBG_PRINT(x)
+#define DBG_PRINTLN(x)
+#endif
+
+  ClockControl::ClockControl(size_t size, bool in3, std::function<void(String)> afprocessor)
     : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size), 
-  fdebug(in3), fUseSerial(useSerial), fprocessor(afprocessor) {
+  fdebug(in3), fprocessor(afprocessor) {
     tArray = new time_t[size];
     rArray = new long long[size];
   }
@@ -16,9 +24,8 @@
   void ClockControl::thisPrint(String aString) {
 	if (fprocessor) {
 		fprocessor(aString);
-	} 
-	if (fUseSerial) {
-		if (fdebug) Serial.print(aString);
+	} else {
+		if (fdebug) DBG_PRINT(aString);
 	}
   }
   bool ClockControl::isReliable() {

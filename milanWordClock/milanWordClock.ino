@@ -7,8 +7,7 @@
 #include "hardware/timer.h"
 #include "WordClock.h"
 
-// set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
-#if defined(MILAN_CLOCK)
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
 
 // not using interupts for word clock is not displaying time
 #define INTERRUPT_WORD_CLOCK 1
@@ -81,11 +80,8 @@ bool thereIsAtimerClockControlAdjust_running = false;
 #endif
 
 WordClock theWordClock;
-#if SERIAL_DEBUG
-ClockControl theClockControl(10, debug3, true);
-#else
-ClockControl theClockControl(10, debug3, false);
-#endif
+
+ClockControl theClockControl(10, debug3);
 
 #if CLOCK_CONTROL_INTERRUPT
 bool clockControlAdjustCallback(repeating_timer_t *rt) {

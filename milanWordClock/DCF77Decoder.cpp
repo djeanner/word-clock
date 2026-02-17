@@ -79,7 +79,7 @@
         DBG_PRINT("],");
         if (isRingFull()) { DBG_PRINT("L"); }
         DBG_PRINT("ms:");
-        DBG_PRINT(String((long)getAverageCore()));  // miliStore
+        DBG_PRINT(getAverageCore());  // miliStore
         DBG_PRINT(", ");
         DBG_PRINTLN(stringForLine);
       }

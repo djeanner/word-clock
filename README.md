@@ -220,3 +220,55 @@ Last stored time : 13  1 2026 10:32:50
  Time since last stored time not long enough for good precision rejects time in quality mode
 2590 < 3600 s.
 Stop listening to dcf77 for 20 min.
+
+
+
+arduino-cli compile --fqbn rp2040:rp2040:rpipico
+arduino-cli compile --fqbn rp2040:rp2040:rpipicow
+
+ls -lart /dev/cu.us*
+arduino-cli upload -p /dev/ttyACM0 --fqbn rp2040:rp2040:rpipico
+arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipico
+
+// add a macro SKETCH_NAME
+--build-property compiler.cpp.extra_flags="-DSKETCH_NAME=\"clockcontrol\""
+
+  --export-binaries 
+  --build-path ./build
+  --warnings all 
+  --verbose
+
+
+ 
+cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp WordClock.h milanWordClock
+cp main.ino milanWordClock/milanWordClock.ino
+cd milanWordClock 
+	echo "************* Compile for pico pi W "
+	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries   --warnings all --verbose --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
+	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipicow --input-dir ./build
+
+	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
+
+	echo "************* shows stream from serial port (stop with CTRL-C)" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+cd ..
+cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+
+
+ 
+cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp WordClock.h testClock
+cp main.ino testClock/testClock.ino
+cd testClock 
+	echo "************* Compile for pico pi"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipico  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DTEST_CLOCK=1"
+	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipico --input-dir ./build
+
+	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
+
+	echo "************* shows stream from serial port (stop with CTRL-C)" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	cd ..
+cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	 

@@ -11,13 +11,12 @@ private:
 	long int period;
 	bool isPositiveCorrection;
 	const size_t fsize;
-	const bool fdebug;
-	const bool fUseSerial;
-	const std::function<void(String)> fprocessor;
+	bool fdebug;
+	std::function<void(String)> fprocessor;
 	time_t *tArray;
 	long long *rArray;
 public:
-  ClockControl(size_t size, bool in3, bool abool, std::function<void(String)> afprocessor = {});
+  ClockControl(size_t size, bool in3, std::function<void(String)> afprocessor = {});
   ~ClockControl() ;
   void thisPrint(String aString) ;
   void thisPrintLN(String aString) ;
