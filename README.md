@@ -274,3 +274,26 @@ cd testClock
 	 
 	DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a serial.txt
 cd ..
+
+
+cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  DCF77DispClock
+cp DCF77Window.cpp DCF77Window.h DCF77DispClock
+cp TFT_Window.cpp TFT_Window.h DCF77DispClock
+cp TFT_Screen.cpp TFT_Screen.h DCF77DispClock
+cp StringWindow.cpp StringWindow.h DCF77DispClock
+cp main.ino DCF77DispClock/DCF77DispClock.ino
+cd DCF77DispClock 
+	echo "**********************************************************************************" >> serial.txt
+	date >> serial.txt
+	echo "************* Compile for pico pi W"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DDCF77DispClock=1"
+	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipicow --input-dir ./build
+
+	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* Setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
+
+	echo "************* shows stream from serial port (stop with CTRL-C)"
+	cd ..
+
+DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a DCF77DispClock/serial.txt
