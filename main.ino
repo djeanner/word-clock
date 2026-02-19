@@ -120,7 +120,8 @@ WordClock theWordClock;
 
 #if SERIAL_DEBUG
 #if defined(DCF77DispClock)
-ClockControl theClockControl(10, debug3, false, [&win](String aString) {win.changeText(aString);});
+//ClockControl theClockControl(10, debug3, false, [&win](String aString) {win.changeText(aString);});// if local
+ClockControl theClockControl(10, debug3, false, [](String aString) {win.changeText(aString);});// if global
 #else
 ClockControl theClockControl(10, debug3, true);
 #endif
@@ -174,7 +175,8 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 #if SERIAL_DEBUG
 #if defined(DCF77DispClock)
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, [&myClass](String aString) {return myClass.myMethod(aString);});
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [&win](String aString) {win.changeText(aString);});
+//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [&win](String aString) {win.changeText(aString);}); // if local
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [](String aString) { win.changeText(aString); }); // if global
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
 #endif
