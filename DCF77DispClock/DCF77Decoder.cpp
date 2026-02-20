@@ -1,6 +1,6 @@
 #include "DCF77Decoder.h"
 
-  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in5, bool in8, bool in9, pin_size_t aPin, bool useSerial, std::function<void(String)> afprocessor) : 
+  DCF77Decoder::DCF77Decoder(size_t aInput, long int aLongInt,  bool in2, bool in5, bool in8, bool in9, pin_size_t aPin, bool useSerial, bool aSaveArchiveForServer) : 
   storedDCF77upPulsesTimes(50), 
   fRadioInput(aInput), 
   fMinValAntenna(aLongInt), 
@@ -10,20 +10,35 @@
   debug9(in9), 
   fLedPin(aPin),
   fUseSerial(useSerial), 
-  fprocessor(afprocessor) {
+  fStringCallback({}),
+  fBitDataCallback({}),
+  fSaveArchiveForServer(aSaveArchiveForServer),
+  fPreviousIndexForServer(0),
+  fMinPointerArchive(0),
+      fStringForServer(String(1200))
+
+   {
     reset();
   }
 
   // destructor
   DCF77Decoder::~DCF77Decoder() {}
 
+  void DCF77Decoder::setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback) {
+	    fBitDataCallback = aBitDataCallback;
+  }
+
+  void DCF77Decoder::setStringCallback(std::function<void(String)> aStringCallback) {
+	    fStringCallback = aStringCallback;
+  }
+
   void DCF77Decoder::thisPrintLN(String aString) {
 	    thisPrint(aString + "\n");
   }
-  
+ 
   void DCF77Decoder::thisPrint(String aString) {
-	if (fprocessor) {
-		fprocessor(aString);
+	if (fStringCallback) {
+		fStringCallback(aString);
 	} 
 	if (fUseSerial) {
 		Serial.print(aString);
@@ -432,7 +447,34 @@
   }
 
   void DCF77Decoder::setRaw(size_t index, int input) {
-    valueIndexSec[index % 60] = input;
+    const size_t checked_index = index % 60;
+    valueIndexSec[checked_index] = input;
+
+    // for both cases below...
+    const int shiftedIndex = (60 - (point_to_start + 1) + checked_index) % 60;
+    DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
+    const int miniString = getDigit(bit);
+
+    if (fSaveArchiveForServer) {
+      if (index < fPreviousIndexForServer) {
+        fPreviousIndexForServer = index; // every Minute
+        fMinPointerArchive ++;
+        fMinPointerArchive = fMinPointerArchive % 100;
+      }
+      unsigned int pointerInString = 120 * fMinPointerArchive;
+      fStringForServer.setCharAt(pointerInString + checked_index + 0, (input == 1) ? '1' : '2');
+      fStringForServer.setCharAt(pointerInString + checked_index + 1, miniString == 11 ? 'T' : (miniString == 12 ? 'F' : ' '));
+       
+    }
+    if (fBitDataCallback) {
+      //const int shiftedIndex = (58 - (point_to_start + 1) + checked_index) % 60;
+       //   return (valueIndexSec[(b + point_to_start + 1) % 60] == 0) ? 0 : 1;
+
+        const int shiftedIndex = (60 - (point_to_start + 1) + checked_index) % 60;
+        DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
+        const int miniString = getDigit(bit);
+        fBitDataCallback(shiftedIndex, input, miniString, checked_index, 0);
+    }
   }
   // ---- raw access for pulse logic ----
   int & DCF77Decoder::raw(size_t index) {
@@ -445,30 +487,29 @@
   void DCF77Decoder::setStart(size_t idx) {
     point_to_start = idx % 60;
   }
-// retuns -1 if not valid -2 if not relevant position 100+value is parity wrong
+
+// retuns -1 if not valid -2 if not relevant position 0-9 Digit 11 for OK parity and 12 for not OK parity
   int DCF77Decoder::getDigit(DCF77Bit zzz) const {
       const int value = getDigitPrivate(zzz);
-      if (value < 0) {
+      if (value >= 0) {
         return value;
       }
-      if (zzz == DCF77Bit::MIN_8_) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else {return value;}
+      if (zzz == DCF77Bit::P1) {
+        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return 11;} else {return 12;}
       }
-      if (zzz == DCF77Bit::MIN_40) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::MIN_1_, DCF77Bit::MIN_40)) {return value + 100;} else {return value;}
+      if (zzz == DCF77Bit::P2) {
+        if (getBit(DCF77Bit::P2) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return 11;} else {return 12;}
       }
-      if (zzz == DCF77Bit::HOUR_8_) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else {return value;}
+      if (zzz == DCF77Bit::P3) {
+        if (getBit(DCF77Bit::P3) == getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) {return 11;} else {return 12;}
       }
-      if (zzz == DCF77Bit::HOUR_20) {
-        if (getBit(DCF77Bit::P1) == getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) {return value + 100;} else {return value;}
+      if (zzz == DCF77Bit::BIT_S_) {
+        if (getBit(DCF77Bit::BIT_S_) == 1) {return 11;} else {return 12;}
       }
-      // any other bit is in the last parity...
-      if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) {
-        return value + 100;
-      } else {
-        return value;
+      if (zzz == DCF77Bit::BIT_M_) {
+        if (getBit(DCF77Bit::BIT_M_) == 0) {return 11;} else {return 12;}
       }
+      return 13;// should never occur
   }
 
   int DCF77Decoder::getDigitPrivate(DCF77Bit zzz) const {
@@ -478,7 +519,7 @@
     if (zzz == DCF77Bit::HOUR_20) {return getDigitP(DCF77Bit::HOUR_10, DCF77Bit::HOUR_20);}
     if (zzz == DCF77Bit::DAYM_8_) {return getDigitP(DCF77Bit::DAYM_1_, DCF77Bit::DAYM_8_);}
     if (zzz == DCF77Bit::DAYM_20) {return getDigitP(DCF77Bit::DAYM_10, DCF77Bit::DAYM_20);}
-    if (zzz == DCF77Bit::DAYW_4_) {return getDigitP(DCF77Bit::DAYW_1_, DCF77Bit::DAYW_4_);}
+   // if (zzz == DCF77Bit::DAYW_4_) {return getDigitP(DCF77Bit::DAYW_1_, DCF77Bit::DAYW_4_);}
     if (zzz == DCF77Bit::MONTH_8_) {return getDigitP(DCF77Bit::MONTH_1_, DCF77Bit::MONTH_8_);}
     if (zzz == DCF77Bit::MONTH_10) {return getDigitP(DCF77Bit::MONTH_10, DCF77Bit::MONTH_10);}
     if (zzz == DCF77Bit::YEAR_8_) {return getDigitP(DCF77Bit::YEAR_1_, DCF77Bit::YEAR_8_);}

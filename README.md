@@ -282,7 +282,7 @@ cp TFT_Window.cpp TFT_Window.h DCF77DispClock
 cp TFT_Screen.cpp TFT_Screen.h DCF77DispClock
 cp StringWindow.cpp StringWindow.h DCF77DispClock
 cp main.ino DCF77DispClock/DCF77DispClock.ino
-cd DCF77DispClock 
+cd DCF77DispClock
 	echo "**********************************************************************************" >> serial.txt
 	date >> serial.txt
 	echo "************* Compile for pico pi W"
@@ -297,3 +297,5 @@ cd DCF77DispClock
 	cd ..
 
 DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a DCF77DispClock/serial.txt
+
+

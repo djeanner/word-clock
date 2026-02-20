@@ -57,7 +57,7 @@ public:
   XPT2046_Touchscreen* getTS();
   uint8_t getWidth() {return width;}
   uint8_t getHeight() {return height;}
-  void begin();
+  void begin(bool showsHello = false);
 
   // ---------- Touch drawing ----------
   void handleTouch();

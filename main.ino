@@ -32,7 +32,7 @@ StringWindow win(&screen,
 	                 1,
 	                 ST77XX_WHITE,
 	                 ST77XX_BLACK,
-	                 "       Hi The world ! and thalldf   sdf sd fs      ",
+	                 "       Hi The world ! Text constructor     ",
 	                 ST77XX_GREEN,
 	                 1);
 #else
@@ -89,7 +89,7 @@ StringWindow win(&screen,
   #define SLEEPORDELAYMS(ms) delay(ms)
 #endif
 
-const bool debug8 = true;   // text
+const bool debug8 = false;   // text
 //txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
 const bool debug9 = debug8;  // display long and short pulses on the fly
 const bool debug5 = false;   // display long pause pulses on the fly
@@ -119,12 +119,7 @@ WordClock theWordClock;
 #endif
 
 #if SERIAL_DEBUG
-#if defined(DCF77DispClock)
-//ClockControl theClockControl(10, debug3, false, [&win](String aString) {win.changeText(aString);});// if local
-ClockControl theClockControl(10, debug3, false, [](String aString) {win.changeText(aString);});// if global
-#else
 ClockControl theClockControl(10, debug3, true);
-#endif
 #else
 ClockControl theClockControl(10, debug3, false);
 #endif
@@ -174,9 +169,11 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 
 #if SERIAL_DEBUG
 #if defined(DCF77DispClock)
+const bool wantsAServer = true;
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, [&myClass](String aString) {return myClass.myMethod(aString);});
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [&win](String aString) {win.changeText(aString);}); // if local
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [](String aString) { win.changeText(aString); }); // if global
+//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [](String aString) { win.changeText(aString); }); // if global
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, wantsAServer);
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
 #endif
@@ -184,6 +181,18 @@ DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, L
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
 #endif
+
+#if defined(DCF77DispClock)
+            
+DCF77Window theDCFwin(&screen,
+                     16, 2, 126, 106,
+                     1,
+                     ST77XX_WHITE,
+                     ST77XX_BLACK,
+                     ST77XX_RED, 1, 2);
+
+#endif
+
 
 void setup() {
 #if INTERRUPT_WORD_CLOCK
@@ -207,39 +216,21 @@ void setup() {
   // Start with everything released
 #if defined(DCF77DispClock)
   screen.begin();
-  delay(100);
-  //screen.getTFT()->fillScreen(ST77XX_BLACK); // does not fill the screen. a L of random color remains.
- screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
- screen.getTFT()->drawRect(1, 1, screen.getWidth(), screen.getHeight(), ST77XX_BLUE);
- screen.getTFT()->drawRect(screen.getWidth()-2, screen.getHeight()-2, 2, 2, ST77XX_GREEN);
- screen.getTFT()->drawRect(screen.getWidth(), screen.getHeight(), 2, 2, ST77XX_YELLOW);
- if (true)  {
- screen.getTFT()->drawFastHLine(0, 126, screen.getWidth(), ST77XX_RED );
- screen.getTFT()->drawFastHLine(0, 127, screen.getWidth(), ST77XX_BLUE );
- screen.getTFT()->drawFastHLine(0, 128, screen.getWidth(), ST77XX_RED );
- screen.getTFT()->drawFastVLine(158, 0, screen.getHeight(), ST77XX_RED );
- screen.getTFT()->drawFastVLine(159, 0, screen.getHeight(), ST77XX_CYAN );
- screen.getTFT()->drawFastVLine(160, 0, screen.getHeight(), ST77XX_RED );
- 
-                 
-  DCF77Window win3(&screen,
-	                 16, 2, 126, 40,
-	                 1,
-	                 ST77XX_WHITE,
-	                 ST77XX_BLACK,
-	                 ST77XX_RED, 1, 2);
+ //screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
+
 	win.draw();
 
-
-	win3.draw();
+	theDCFwin.draw();
   for (int l = 0 ; l < 100; l++) {
 	  win.drawShift(l);
-    if (l == 50) {win.changeText("  Test second text .. it needs a ENDL           \n");}
+    if (l == 50) {win.changeText(" Rolling demo changed text. It needs a ENDL         \n");}
   }
-	win.draw();
-
- }
- 
+  win.changeText("Fixed demo changed text. It needs a ENDL         \n");
+  // note if global : []
+  // note if local : [&theDCFwin]
+  theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
+  //dcf77.setStringCallback([](String aString) {win.changeText(aString);});
+  dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
 #else
   if (debug2) theWordClock.debugSetHoursLeds(1);
@@ -272,14 +263,15 @@ void loop() {
   if (testEachLedFirst) { 
     theWordClock.testLed();
   } 
-#endif
-  
+#endif // defined(DCF77DispClock)
+  dcf77.reset();
+  dcf77.initListen();
+  DBG_PRINTLN("Start listening to dcf77 signal ...");
+
   for (long superLoop = 0; superLoop < 100000000; superLoop++) {
     // Main listener : returns when have recieved valid time/date. May last minutes.
-    DBG_PRINTLN("Start listening to dcf77 signal ...");
 
-    dcf77.reset();
-    dcf77.initListen();
+    
     int lastMinL1 = minute(now());
     for (long fastLoop = 0; fastLoop < 1000000000; fastLoop ++) {
       // fast loop 
@@ -294,24 +286,35 @@ void loop() {
       if (lastMinL1 != curMin) {
         lastMinL1 = curMin;
 #if defined(DCF77DispClock)
-
 #else
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
-#endif
+#endif // defined(DCF77DispClock)
       }
+#if defined(DCF77DispClock)
+        win.drawShift(fastLoop);
+#else
+#endif // defined(DCF77DispClock)
     }
-  
+#if defined(DCF77DispClock)
+    time_t t = now();
+    String lastTimeString = String(day(t)) + "/" +
+                            String(month(t)) + "/" +
+                            String(year(t)) + " " +
+                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
+                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
+                            theClockControl.isReliable() ? "+" : "-";
+                            "\n";
+    win.changeText(lastTimeString);
+#else
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 180 : 10; // 20 : 5; //
     DBG_PRINT("Stop listening to dcf77 for ");
     DBG_PRINT(numberMinStaysInLoop);
     DBG_PRINTLN(" min.");
     time_t t = now();
-#if defined(DCF77DispClock)
 
-#else
     theWordClock.setWordClock(minute(t), hour(t), theClockControl.isReliable());
-#endif    
     int lastMin = minute(t);
     for (unsigned long long loo = 0UL; loo < 1000000000; loo++) {
       t = now();
@@ -330,15 +333,15 @@ void loop() {
         theClockControl.adjustTimeMinute(millis() / 60000LL);
 #endif // !CLOCK_CONTROL_INTERRUPT
         digitalWrite(LEDPIN, ((curMin % 2) == 0) ? LOW : HIGH);
-#if defined(DCF77DispClock)
-
-#else
         theWordClock.setWordClock(minute(t), hour(t), theClockControl.isReliable());
-#endif  
         numberMinStaysInLoop -= 1;
         if (numberMinStaysInLoop <= 0) break;
         SLEEPORDELAYMS(55000);  // waits for 55 sec
       }
     }
+    dcf77.reset();
+    dcf77.initListen();
+    DBG_PRINTLN("Restart listening to dcf77 signal ...");
+#endif // defined(DCF77DispClock)
   }
 }

@@ -18,7 +18,7 @@ Adafruit_ST7735* TFT_Screen::getTFT() {
 
 XPT2046_Touchscreen* TFT_Screen::getTS() {
   return &ts;
-}void TFT_Screen::begin() {
+}void TFT_Screen::begin(bool showsHello) {
   Serial.begin(115200);
 
   SPI.setRX(spi_rx);
@@ -30,9 +30,11 @@ XPT2046_Touchscreen* TFT_Screen::getTS() {
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
   tft.fillScreen(ST77XX_BLACK);
-  tft.setCursor(10,10);
   tft.setTextColor(ST77XX_WHITE);
-  tft.println("Hello Pico");
+  if (showsHello) {
+    tft.setCursor(10,10);
+    tft.println("Hello Pico");
+  }
   delay(100);
 
   ts.begin();

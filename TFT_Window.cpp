@@ -17,13 +17,7 @@ TFT_Window::TFT_Window(TFT_Screen* aScreen,
 Adafruit_ST7735* TFT_Window::getTFT() {return ftft;}
 
 void TFT_Window::draw() {
-
-  int ix = fx;
-  int iy = fy;
-  int iw = fw;
-  int ih = fh;
-
-  // draw frame
+ 
   if (fframeWidth > 0) {
     for (int i = 0; i < fframeWidth; i++) {
       ftft->drawRect(fx + i, fy + i,
@@ -31,12 +25,12 @@ void TFT_Window::draw() {
                     fframeColor);
     }
 
-    ix += fframeWidth;
-    iy += fframeWidth;
-    iw -= 2 * fframeWidth;
-    ih -= 2 * fframeWidth;
+    
   }
-
+  fx += fframeWidth;
+  fy += fframeWidth;
+  fWidth = fw - 2 * fframeWidth;
+  fHeigth = fh - 2 * fframeWidth;  // draw frame 
   // fill background inside frame
-  ftft->fillRect(ix, iy, iw, ih, fbgColor);
+  ftft->fillRect(fx, fy, fWidth, fHeigth, fbgColor);
 }
