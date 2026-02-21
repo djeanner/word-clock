@@ -7,6 +7,9 @@
 #include "hardware/timer.h"
 
 #if defined(DCF77DispClock)
+
+#define WIFI_DCF77_DECODER 1
+
 #include <functional>
 
 #include "TFT_Screen.h"
@@ -112,6 +115,15 @@ bool thereIsAtimerClockControlAdjust_running = false;
 #define CLOCK_CONTROL_INTERRUPT 0
 #endif
 
+#if defined(WIFI_DCF77_DECODER)
+#include <WiFi.h>
+
+const char* ssid = "FibreBox_X6-1A0DE7";
+const char* password = "GDAEPE69PTRXDTWPRC";
+
+WiFiServer server(80);
+#endif // defined(WIFI_DCF77_DECODER)
+
 #if defined(DCF77DispClock)
 
 #else
@@ -167,9 +179,16 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 }
 #endif // INTERRUPT_WORD_CLOCK
 
+#if defined(WIFI_DCF77_DECODER)
+const bool wantsAServer = true;
+bool isWifiOK = false;
+#else
+const bool wantsAServer = false;
+#endif // defined(WIFI_DCF77_DECODER)
+
 #if SERIAL_DEBUG
 #if defined(DCF77DispClock)
-const bool wantsAServer = true;
+
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, [&myClass](String aString) {return myClass.myMethod(aString);});
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [&win](String aString) {win.changeText(aString);}); // if local
 //DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [](String aString) { win.changeText(aString); }); // if global
@@ -213,7 +232,30 @@ void setup() {
   DBG_PRINT("The DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
-  // Start with everything released
+#if defined(WIFI_DCF77_DECODER)
+WiFi.begin(ssid, password);
+
+  for(int waitWifi = 0; waitWifi < 100; waitWifi++) {
+  const auto status = WiFi.status();
+    if (status == WL_CONNECTED) {
+      isWifiOK = true;
+      Serial.print("Connected to Wifi. Server available at http://");
+      Serial.print(WiFi.localIP());
+      Serial.println("/");
+
+      server.begin();
+       break;
+    }
+    if (waitWifi == 0) {Serial.print("\nTrying to connect wifi. Status ");}
+    if (waitWifi == 0) {Serial.println(status);}
+    delay(500);
+    Serial.print(".");
+  }
+  if (! isWifiOK) {
+    Serial.println("\nNot Connected!");
+  }
+#endif // defined(WIFI_DCF77_DECODER)
+
 #if defined(DCF77DispClock)
   screen.begin();
  //screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
@@ -255,7 +297,6 @@ void setup() {
 void loop() {
 
 #if defined(DCF77DispClock)
-
 #else
   if (debug2) theWordClock.debugSetHoursLeds(3);
   // Test each output led
@@ -283,18 +324,81 @@ void loop() {
       }
       time_t t = now();
       const int curMin = minute(t);
-      if (lastMinL1 != curMin) {
+      if (lastMinL1 != curMin) { // every minute
         lastMinL1 = curMin;
 #if defined(DCF77DispClock)
 #else
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
 #endif // defined(DCF77DispClock)
       }
+#if defined(WIFI_DCF77_DECODER)
+
+  WiFiClient client = server.accept();
+
+  if (client) {
+    Serial.println("New client connected");
+
+     // Attendre que des données arrivent
+    unsigned long timeout = millis();
+    while (!client.available()) {
+      if (millis() - timeout > 2000) {
+        client.stop();
+        break;
+      }
+    }
+
+    // Lire toute la requête HTTP
+    while (client.available()) {
+      client.read();
+    }
+    // Réponse HTTP
+    client.print("HTTP/1.1 200 OK\r\n");
+    client.print("Content-Type: text/html\r\n");
+    //client.print("Content-Type: application/json\r\n"); // JSON header
+    client.print("Connection: close\r\n");
+    client.print("\r\n");
+
+    // main part
+    client.println("<!DOCTYPE html>");
+    client.println("<html>");
+    client.println(" <h1>Pico W Web Server</h1>");
+
+    time_t t = now();
+    String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
+                            (month(t) < 10 ? " " : "") + String(month(t)) + "/" +
+                            (year(t) < 10 ? " " : "") + String(year(t)) + " " +
+                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + 
+                            ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
+                            " " + (theClockControl.isReliable() ? "(+)" : "(-)") +
+                            "\n";
+    client.print(" <p>");
+    client.print(lastTimeString);
+    client.println(" </p>");                    
+    for (int zu = 0; zu < 100; zu++) {
+      client.print(" <p>");
+      if (zu < 10) {client.print(" ");}
+      //client.print(zu);
+      client.print("  ");
+      client.print(dcf77.getArchive(zu).c_str());
+      client.println(" </p>");
+    }
+    client.println("</html>");
+
+
+    client.flush();    // force envoi de tout le buffer TCP
+    delay(10);
+    client.stop();
+    Serial.println("Client disconnected");
+  }
+#endif // defined(WIFI_DCF77_DECODER)
 #if defined(DCF77DispClock)
-        win.drawShift(fastLoop);
+  win.drawShift(fastLoop);
 #else
 #endif // defined(DCF77DispClock)
-    }
+
+    } // fastLoop
+
 #if defined(DCF77DispClock)
     time_t t = now();
     String lastTimeString = String(day(t)) + "/" +

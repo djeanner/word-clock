@@ -189,6 +189,7 @@ public:
 
   // destructor
   ~DCF77Decoder();
+  String getArchive(int lineNumber);
   void setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback = {});
   void setStringCallback(std::function<void(String)> aStringCallback = {});
   void thisPrintLN(String aString = "");

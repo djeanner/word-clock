@@ -15,9 +15,8 @@
   fSaveArchiveForServer(aSaveArchiveForServer),
   fPreviousIndexForServer(0),
   fMinPointerArchive(0),
-      fStringForServer(String(1200))
-
-   {
+  fStringForServer("")
+  {
     reset();
   }
 
@@ -276,6 +275,8 @@
       valueIndexSec[i] = 2;  // unknown
     }
     storedDCF77upPulsesTimes.reset();
+    fStringForServer = "";
+    for (int i = 0; i < 100*145; i++ ) {fStringForServer += " ";}
   }
 
   size_t DCF77Decoder::getStart() {
@@ -418,9 +419,9 @@
     retString += "" + String(getDayWString()) + " ";
     retString += getMonthString() + " ";
     retString += String(getDayM()) + " ";
-    retString += String(String((long)(2000 + getYear()))) + " ";
+    retString += String((long)(2000 + getYear())) + " ";
     if (areAllOK()) {
-      retString += "AllT";
+      retString += "AllT  ";
     } else {
       retString += getBit(DCF77Bit::BIT_M_) == 1 ? "1" : "0";
       retString += getBit(DCF77Bit::BIT_R_) == 1 ? "1" : "0";
@@ -445,6 +446,10 @@
     }
     return s;
   }
+  String DCF77Decoder::getArchive(int lineNumber) {
+    const int safelineNumber = lineNumber % 100;
+    return fStringForServer.substring(145 * safelineNumber, 145 * (safelineNumber + 1));
+  }
 
   void DCF77Decoder::setRaw(size_t index, int input) {
     const size_t checked_index = index % 60;
@@ -456,20 +461,36 @@
     const int miniString = getDigit(bit);
 
     if (fSaveArchiveForServer) {
-      if (index < fPreviousIndexForServer) {
-        fPreviousIndexForServer = index; // every Minute
+      if (index < fPreviousIndexForServer) { // every Minute
         fMinPointerArchive ++;
         fMinPointerArchive = fMinPointerArchive % 100;
       }
-      unsigned int pointerInString = 120 * fMinPointerArchive;
-      fStringForServer.setCharAt(pointerInString + checked_index + 0, (input == 1) ? '1' : '2');
-      fStringForServer.setCharAt(pointerInString + checked_index + 1, miniString == 11 ? 'T' : (miniString == 12 ? 'F' : ' '));
-       
+      fPreviousIndexForServer = index; 
+      unsigned int pointerInString = 145 * fMinPointerArchive;
+      const String tmpString = getString() + "                   ";
+      for (size_t u = 0; u < 22 ; u++) {
+        fStringForServer.setCharAt(pointerInString + u, tmpString.charAt(u));
+      }
+      pointerInString += 25;
+      char c;
+      switch (input) {
+          case 0: c = '0'; break;
+          case 1: c = '1'; break;
+          case 2: c = '2'; break;
+          case 3: c = '3'; break;
+          case 4: c = '4'; break;
+          default: c = '?'; break;
+      }
+      fStringForServer.setCharAt(pointerInString + checked_index * 2 + 0, c);
+      switch (miniString) {
+          case 11: c = 'T'; break;
+          case 12: c = 'F'; break;
+          default: c = ' '; break;
+      }
+      fStringForServer.setCharAt(pointerInString + checked_index*2 + 1, c);
+      // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + 145));
     }
     if (fBitDataCallback) {
-      //const int shiftedIndex = (58 - (point_to_start + 1) + checked_index) % 60;
-       //   return (valueIndexSec[(b + point_to_start + 1) % 60] == 0) ? 0 : 1;
-
         const int shiftedIndex = (60 - (point_to_start + 1) + checked_index) % 60;
         DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
         const int miniString = getDigit(bit);

@@ -14,8 +14,8 @@ DCF77Window::DCF77Window(TFT_Screen* aScreen,
     ftextSize(textSize),
     fdotSize(dotSize),
 	fYmap(0),
-	fLastPos(0)
-{}
+	fLastPos(0) {}
+
 void DCF77Window::pixel(const int16_t x, const int16_t y, const uint16_t col) {
 	if (fdotSize == 2) {
 		ftft->drawPixel(fx + fframeWidth + 2*x  ,  fy + fframeWidth +2*y  , col);
@@ -152,8 +152,8 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 	int posMultiLineBit = 14;
 
 	// calc postion in map (lower part of the window)
-	int spaceBottom = (getHeight() - posMultiLineBit) / fdotSize - 1;
-	if (spaceBottom < 1) spaceBottom = 1;
+	int spaceBottom = ((getHeight() - posMultiLineBit) / fdotSize) - 3;
+	if (spaceBottom < 1) {spaceBottom = 1;}
 	if (indexCrude < fLastPos) {
 		fLastPos = indexCrude;
 		fYmap++;

@@ -299,3 +299,9 @@ cd DCF77DispClock
 DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a DCF77DispClock/serial.txt
 
 
+
+
+
+while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/data/data_$(date +%Y-%m-%d_%H-%M).html; sleep 3600; done
+
+while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
