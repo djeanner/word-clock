@@ -18,13 +18,13 @@ DCF77Window::DCF77Window(TFT_Screen* aScreen,
 
 void DCF77Window::pixel(const int16_t x, const int16_t y, const uint16_t col) {
 	if (fdotSize == 2) {
-		ftft->drawPixel(fx + fframeWidth + 2*x  ,  fy + fframeWidth +2*y  , col);
-		ftft->drawPixel(fx + fframeWidth + 2*x+1,  fy + fframeWidth +2*y  , col);
-		ftft->drawPixel(fx + fframeWidth + 2*x  ,  fy + fframeWidth +2*y+1, col);
-		ftft->drawPixel(fx + fframeWidth + 2*x+1,  fy + fframeWidth +2*y+1, col);
+		ftft->drawPixel(getXpos() + fframeWidth + 2*x  ,  getYpos() + fframeWidth +2*y  , col);
+		ftft->drawPixel(getXpos() + fframeWidth + 2*x+1,  getYpos() + fframeWidth +2*y  , col);
+		ftft->drawPixel(getXpos() + fframeWidth + 2*x  ,  getYpos() + fframeWidth +2*y+1, col);
+		ftft->drawPixel(getXpos() + fframeWidth + 2*x+1,  getYpos() + fframeWidth +2*y+1, col);
 		return;
 	}
-	ftft->drawPixel(fx + fframeWidth + x, fy + fframeWidth + y, col);
+	ftft->drawPixel(getXpos() + fframeWidth + x, getYpos() + fframeWidth + y, col);
 }
 void DCF77Window::miniNum(const int16_t valueDigit, const int16_t x, const int16_t y, const uint16_t col) {
 	// 3x5 digit
@@ -119,8 +119,8 @@ void DCF77Window::draw() {
   TFT_Window::draw();
 
 
-  int iw = fw - 2 * fframeWidth;
-  int ih = fh - 2 * fframeWidth;
+  int iw = getWidth() - 2 * fframeWidth;
+  int ih = getHeight() - 2 * fframeWidth;
 
   ftft->setTextColor(ftextColor);// if second color, it is the background
   ftft->setTextSize(ftextSize);

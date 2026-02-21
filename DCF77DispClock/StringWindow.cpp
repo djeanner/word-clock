@@ -20,8 +20,7 @@ StringWindow::StringWindow(TFT_Screen* aScreen,
 {}
 
 void StringWindow::changeText(String input) {
-  getTFT()->fillRect(fx, fy, fWidth, fHeigth, fbgColor);
-
+  getTFT()->fillRect(getXpos(), getYpos(), getWidth(), getHeight(), fbgColor);
   String fullString = fBufferedInput + input;
   int pos = fullString.indexOf('\n');
   if (pos >= 0) {
@@ -40,12 +39,10 @@ void StringWindow::draw() {
 
 void StringWindow::drawShift(int startString = 0) {
 
-  if (getWidth() > -1) {}
-  if (getHeight() > -1) {}
-  int ix = fx ;// + fframeWidth;
-  int iy = fy ;// + fframeWidth;
-  int iw = fw ;// - 2 * fframeWidth;
-  int ih = fh ;// - 2 * fframeWidth;
+  int ix = getXpos() ;// + fframeWidth;
+  int iy = getYpos() ;// + fframeWidth;
+  int iw = getWidth() ;// - 2 * fframeWidth;
+  int ih = getWidth() ;// - 2 * fframeWidth;
   int spaceX = ftextSize;
   int widthChar = 6 * ftextSize;
   int nbChar = (iw - 7)/ widthChar;

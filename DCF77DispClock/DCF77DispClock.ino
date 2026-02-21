@@ -377,9 +377,9 @@ void loop() {
     client.println(" </p>");                    
     for (int zu = 0; zu < 100; zu++) {
       client.print(" <p>");
-      if (zu < 10) {client.print(" ");}
-      //client.print(zu);
-      client.print("  ");
+      // if (zu < 10) {client.print(" ");}
+      // client.print(zu);
+      client.print("   ");
       client.print(dcf77.getArchive(zu).c_str());
       client.println(" </p>");
     }

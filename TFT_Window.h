@@ -5,15 +5,15 @@
 class TFT_Window {
 protected:
   TFT_Screen* fScreen;
-  Adafruit_ST7735* ftft;
-  uint8_t fWidth;
-  uint8_t fHeigth;
-  // original geometry (never modified)
-  int fx, fy, fw, fh;
-
+  const int fx, fy, fw, fh;
   int fframeWidth;
   uint16_t fframeColor;
   uint16_t fbgColor;
+  uint8_t fWidth;
+  uint8_t fHeigth;
+  uint8_t fXpos;
+  uint8_t fYpos;
+  Adafruit_ST7735* ftft;
 
 public:
   TFT_Window(TFT_Screen* aScreen,
@@ -25,5 +25,7 @@ public:
   Adafruit_ST7735* getTFT();
   uint8_t getWidth() {return fWidth;}
   uint8_t getHeight() {return fHeigth;}
+  uint8_t getXpos() {return fXpos;}
+  uint8_t getYpos() {return fYpos;}
   virtual void draw();
 };
