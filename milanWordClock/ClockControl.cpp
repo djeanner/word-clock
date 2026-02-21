@@ -1,16 +1,8 @@
 #include "ClockControl.h"
 
-#if SERIAL_DEBUG
-#define DBG_PRINT(x) Serial.print(x)
-#define DBG_PRINTLN(x) Serial.println(x)
-#else
-#define DBG_PRINT(x)
-#define DBG_PRINTLN(x)
-#endif
-
-  ClockControl::ClockControl(size_t size, bool in3, std::function<void(String)> afprocessor)
+  ClockControl::ClockControl(size_t size, bool in3, bool useSerial)
     : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size), 
-  fdebug(in3), fprocessor(afprocessor) {
+  fdebug(in3), fUseSerial(useSerial), fStringCallback({}) {
     tArray = new time_t[size];
     rArray = new long long[size];
   }
@@ -18,14 +10,18 @@
     delete[] tArray;
     delete[] rArray;
   }
+  void ClockControl::setStringCallback(std::function<void(String)> aStringCallback) {
+	    fStringCallback = aStringCallback;
+  }
   void ClockControl::thisPrintLN(String aString) {
 	    thisPrint(aString + "\n");
   }
   void ClockControl::thisPrint(String aString) {
-	if (fprocessor) {
-		fprocessor(aString);
-	} else {
-		if (fdebug) DBG_PRINT(aString);
+	if (fStringCallback) {
+		fStringCallback(aString);
+	} 
+	if (fUseSerial) {
+		if (fdebug) Serial.print(aString);
 	}
   }
   bool ClockControl::isReliable() {
@@ -151,25 +147,33 @@
         thisPrintLN("Crit OK: Switch to reliable");
         qualityAccept = true;
       } else {
-        thisPrintLN("Crit failed: Time is not consistent (normal if first call). It is not considered as reliable");
+        thisPrint("X: ");
+        thisPrint(stringTime(t));
+        thisPrintLN(" is first or not consistent. It is not considered as reliable");
         return;
       }
     }
     // dont use else because qualityAccept changes in if
     if (qualityAccept) {
       if (!critConsistent) {
-        thisPrintLN("Crit failed: Time is not consistent: ignored");
+        thisPrint("X: ");
+        thisPrint(stringTime(t));
+        thisPrintLN(" is not consistent: ignored");
         return;
       }
       
 
       if (pointer == 0) {
-        thisPrintLN("Crit consistent : first time quality, save time but not calculating error...");
+        thisPrint("OK : ");
+        thisPrint(stringTime(t));
+        thisPrintLN(": first time quality, save time but not calculating error...");
         setTime(t);  // correct time
         storeDate(tNow, 0LL);
         return;
       }
-      thisPrintLN("Crit consistent : consider calculate error for fine tuning in quality mode");
+      thisPrint("OK : ");
+      thisPrint(stringTime(t));
+      thisPrintLN(" : consider calculate error for fine tuning in quality mode");
       const time_t lastTime = getLastTime();
       thisPrint("Last stored time : ");
       thisPrintLN(stringTime(lastTime));
@@ -188,7 +192,9 @@
         return;
       }
       setTime(t);  // correct time
-      thisPrintLN("Crit consistent : calculate error for fine tuning in quality mode");
+      thisPrint("OK : ");
+      thisPrint(stringTime(t));
+      thisPrintLN(" : calculate error for fine tuning in quality mode");
 
       thisPrintLN("Calculate time correction...");
       const long long durationOneDay = 24 * 60 * 60;
@@ -218,8 +224,11 @@
       thisPrint("Including previous correction : ");
       thisPrint(String((long)errorSecondsPerDay));
       thisPrintLN("");
-
+      thisPrint(stringTime(t));
+      thisPrint(" ");
+      //
       storeDate(tNow, errorSecondsPerDay);
+      // 
       thisPrint(" Period ");
       if (isPositiveCorrection) {thisPrint("add ");}
       else {thisPrint("subtract ");}

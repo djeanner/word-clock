@@ -13,12 +13,13 @@ private:
 	const size_t fsize;
 	const bool fdebug;
 	const bool fUseSerial;
-	const std::function<void(String)> fprocessor;
+	std::function<void(String)> fStringCallback;
 	time_t *tArray;
 	long long *rArray;
 public:
-  ClockControl(size_t size, bool in3, bool abool, std::function<void(String)> afprocessor = {});
+  ClockControl(size_t size, bool in3, bool abool);
   ~ClockControl() ;
+  void setStringCallback(std::function<void(String)> aStringCallback = {});
   void thisPrint(String aString = "") ;
   void thisPrintLN(String aString = "") ;
   bool isReliable() ;

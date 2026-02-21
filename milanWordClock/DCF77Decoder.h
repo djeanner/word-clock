@@ -156,17 +156,24 @@ public:
     }
   };
 
-
 private:
 
   Ring storedDCF77upPulsesTimes;
   size_t fRadioInput;
   long int fMinValAntenna;
-   bool debug2;
-   bool debug5;
-   bool debug8;
-   bool debug9;
+  bool debug2;
+  bool debug5;
+  bool debug8;
+  bool debug9;
   pin_size_t fLedPin;
+  const bool fUseSerial;
+	std::function<void(String)> fStringCallback;
+	std::function<void(int, int, int, int, int)> fBitDataCallback;
+  const bool fSaveArchiveForServer;
+  unsigned int fPreviousIndexForServer;
+  unsigned int fMinPointerArchive;
+  String fStringForServer;
+
   int valueIndexSec[60];
   size_t point_to_start;
   int previVal;
@@ -178,64 +185,46 @@ private:
   tmElements_t tm;
 public:
   // contructor
-  DCF77Decoder(size_t aInput, long int aLongInt, bool in2, bool in5, bool in8, bool in9, pin_size_t aPin = 127);
+  DCF77Decoder(size_t aInput, long int aLongInt, bool in2, bool in5, bool in8, bool in9, pin_size_t aPin, bool useSerial = false, bool fSaveArchiveForServer = false);
 
   // destructor
-  ~DCF77Decoder() ;
-
+  ~DCF77Decoder();
+  String getArchive(int lineNumber);
+  void setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback = {});
+  void setStringCallback(std::function<void(String)> aStringCallback = {});
+  void thisPrintLN(String aString = "");
+  void thisPrint(String aString = "");
   void initListen();
-  
   tmElements_t getTM();
-  
-  int listen(ClockControl & theClockControl) ;
-
-  int circularDelta(int a, int b) ;
-
-  int absCircularDelta(int a, int b) ;
-
-  bool isRingFull() ;
-
-  int getAverageCore() ;
-
-  void pushDuration(int input) ;
-
-  void reset() ;
-  size_t getStart() ;
-
+  int listen(ClockControl & theClockControl);
+  int circularDelta(int a, int b);
+  int absCircularDelta(int a, int b);
+  bool isRingFull();
+  int getAverageCore();
+  void pushDuration(int input);
+  void reset();
+  size_t getStart();
   inline bool isBitUnknown(DCF77Bit bit) const ;
-
   inline int getBit(DCF77Bit bit) const;
   int getParity(DCF77Bit first, DCF77Bit last) const;
   int getHour() const ;
   int getMin() const ;
-
   int getYear() const ;
-
-  String getMonthString() ;
-
-  String getDayWString() ;
-
+  String getMonthString();
+  String getDayWString();
   int getDayM() const ;
-
   int getDayW() const ;
-
   int getMonth() const ;
-
   bool areAllOK() const;
-
   String getString();
-
   String getStringDEL() const ;
-
-  void setRaw(size_t index, int input) ;
-  int &raw(size_t index) ;
+  void setRaw(size_t index, int input);
+  int &raw(size_t index);
   int raw(size_t index) const;
-  void setStart(size_t idx) ;
+  void setStart(size_t idx);
   int getDigit(DCF77Bit zzz) const ;
 private:
   int getDigitPrivate(DCF77Bit zzz) const ;
-
   int getDigitP(DCF77Bit first, DCF77Bit last) const ;
-
 };
 

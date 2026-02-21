@@ -22,7 +22,7 @@ public:
                int ty = -1);
 
   void draw() override;
-  void drawShift(int shift);
+  void drawShift(int startString = 0);
   void changeText(String aString);
 
 };

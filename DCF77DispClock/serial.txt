@@ -12022,3 +12022,158 @@ End setup
 Start listening to dcf77 signal ...
 New client connected
 Client disconnected
+**********************************************************************************
+Sat Feb 21 13:08:41 CET 2026
+**********************************************************************************
+Sat Feb 21 13:19:58 CET 2026
+**********************************************************************************
+Sat Feb 21 13:20:36 CET 2026
+**********************************************************************************
+Sat Feb 21 14:56:10 CET 2026
+**********************************************************************************
+Sat Feb 21 15:03:53 CET 2026
+**********************************************************************************
+Sat Feb 21 15:05:02 CET 2026
+**********************************************************************************
+Sat Feb 21 15:07:50 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:16:05 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:17:16 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:19:05 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:19:49 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:21:47 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:22:36 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:23:56 CET 2026
+
+Trying to connect wifi. Status 6
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+.
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:28:03 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:29:21 CET 2026
+Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:30:22 CET 2026
+Connected to http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:32:34 CET 2026
+
+Trying to connect wifi. Status 6
+..Connected to http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:34:43 CET 2026
+Connected to http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+**********************************************************************************
+Sat Feb 21 15:37:30 CET 2026
+Connected to http://192.168.1.64/
+**********************************************************************************
+Sat Feb 21 15:38:11 CET 2026
+Connected to http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...

@@ -244,7 +244,7 @@ cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp
 cp main.ino milanWordClock/milanWordClock.ino
 cd milanWordClock 
 	echo "************* Compile for pico pi W "
-	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries   --warnings all --verbose --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
 	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipicow --input-dir ./build
 
 	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
@@ -257,7 +257,12 @@ cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 
 
  
-cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp WordClock.h testClock
+cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h testClock
+cp DCF77Window.cpp DCF77Window.h testClock
+cp TFT_Window.cpp TFT_Window.h testClock
+cp TFT_Screen.cpp TFT_Screen.h testClock
+cp StringWindow.cpp StringWindow.h testClock
+
 cp main.ino testClock/testClock.ino
 cd testClock 
 	echo "**********************************************************************************" >> serial.txt
@@ -272,8 +277,8 @@ cd testClock
 
 	echo "************* shows stream from serial port (stop with CTRL-C)"
 	 
-	DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a serial.txt
 cd ..
+DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a testClock/serial.txt
 
 
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  DCF77DispClock
@@ -304,4 +309,4 @@ DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw 
 
 while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/data/data_$(date +%Y-%m-%d_%H-%M).html; sleep 3600; done
 
-while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
+while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done

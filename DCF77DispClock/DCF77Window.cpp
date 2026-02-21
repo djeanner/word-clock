@@ -18,13 +18,13 @@ DCF77Window::DCF77Window(TFT_Screen* aScreen,
 
 void DCF77Window::pixel(const int16_t x, const int16_t y, const uint16_t col) {
 	if (fdotSize == 2) {
-		ftft->drawPixel(getXpos() + fframeWidth + 2*x  ,  getYpos() + fframeWidth +2*y  , col);
-		ftft->drawPixel(getXpos() + fframeWidth + 2*x+1,  getYpos() + fframeWidth +2*y  , col);
-		ftft->drawPixel(getXpos() + fframeWidth + 2*x  ,  getYpos() + fframeWidth +2*y+1, col);
-		ftft->drawPixel(getXpos() + fframeWidth + 2*x+1,  getYpos() + fframeWidth +2*y+1, col);
+		ftft->drawPixel(getXpos() + 2*x  ,  getYpos() +2*y  , col);
+		ftft->drawPixel(getXpos() + 2*x+1,  getYpos() +2*y  , col);
+		ftft->drawPixel(getXpos() + 2*x  ,  getYpos() +2*y+1, col);
+		ftft->drawPixel(getXpos() + 2*x+1,  getYpos() +2*y+1, col);
 		return;
 	}
-	ftft->drawPixel(getXpos() + fframeWidth + x, getYpos() + fframeWidth + y, col);
+	ftft->drawPixel(getXpos() + x, getYpos() + y, col);
 }
 void DCF77Window::miniNum(const int16_t valueDigit, const int16_t x, const int16_t y, const uint16_t col) {
 	// 3x5 digit
@@ -118,14 +118,10 @@ case 9:
 void DCF77Window::draw() {
   TFT_Window::draw();
 
-
-  int iw = getWidth() - 2 * fframeWidth;
-  int ih = getHeight() - 2 * fframeWidth;
-
   ftft->setTextColor(ftextColor);// if second color, it is the background
   ftft->setTextSize(ftextSize);
 
-   int ty = (8 * ftextSize / 2);
+  int ty = (8 * ftextSize / 2);
 
   const int shifty = 9;
   const auto colorScale = ST77XX_CYAN;
@@ -139,10 +135,6 @@ void DCF77Window::draw() {
 		pixel(xPosition, 3 + shifty, colorScale);
 	}
   }
-	// for(int i = 0; i <= 9; i++) {
-	// 	miniNum(i, i * 6, 8 + shifty, ST77XX_YELLOW);
-	// }
-
 }
 
 void DCF77Window::updateBit(const int index, const int bitData, const int miniString, const int indexCrude, const int unused) {
@@ -152,16 +144,16 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 	int posMultiLineBit = 14;
 
 	// calc postion in map (lower part of the window)
-	int spaceBottom = ((getHeight() - posMultiLineBit) / fdotSize) - 3;
-	if (spaceBottom < 1) {spaceBottom = 1;}
 	if (indexCrude < fLastPos) {
+		int spaceBottom = ((getHeight() - posMultiLineBit) / fdotSize) - 5;
+		if (spaceBottom < 1) {spaceBottom = 1;}
 		fLastPos = indexCrude;
 		fYmap++;
 		fYmap = fYmap % spaceBottom;
 	}
 	fLastPos = indexCrude;
 
-	posMultiLineBit = posMultiLineBit + fYmap;
+	posMultiLineBit += fYmap;
 	const uint16_t colorPixel = ST77XX_RED;
 	uint16_t coloPixel = ST77XX_BLACK;
 	int xPositionMini = 60 - index;
@@ -185,9 +177,9 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 	pixel(60 - index, posSingleLineBit, coloPixel);
 	pixel(60 - indexCrude, posMultiLineBit, coloPixel);
 	if (miniString == 11 || miniString == 12) {
-			pixel(60 - index, posSingleLineBit_below, coloPixel);
+		pixel(60 - index, posSingleLineBit_below, coloPixel);
 	} else {
-			pixel(60 - index, posSingleLineBit_below, ST77XX_BLACK);
+		pixel(60 - index, posSingleLineBit_below, ST77XX_BLACK);
 	}
 	// mini digit 0-9
 	if (miniString >= 0 && miniString <= 9 ) {

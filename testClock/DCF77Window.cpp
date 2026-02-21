@@ -145,7 +145,7 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 
 	// calc postion in map (lower part of the window)
 	if (indexCrude < fLastPos) {
-		int spaceBottom = ((getHeight() - posMultiLineBit) / fdotSize) - 5;
+		int spaceBottom = ((getHeight() - posMultiLineBit) / fdotSize) - 3;
 		if (spaceBottom < 1) {spaceBottom = 1;}
 		fLastPos = indexCrude;
 		fYmap++;

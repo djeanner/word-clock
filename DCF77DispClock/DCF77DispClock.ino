@@ -6,9 +6,46 @@
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
+// set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
 #if defined(DCF77DispClock)
-
+// not using interupts for word clock is not displaying time
+#define INTERRUPT_WORD_CLOCK 0
+// both methods are implemented but have different requirements for compilation
+// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
+#define CLOCK_CONTROL_INTERRUPT 0
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#define TFT_DISPLAY 1
 #define WIFI_DCF77_DECODER 1
+
+#endif
+
+#if defined(TEST_CLOCK)
+// not using interupts for word clock is not displaying time
+#define INTERRUPT_WORD_CLOCK 0
+// both methods are implemented but have different requirements for compilation
+// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
+#define CLOCK_CONTROL_INTERRUPT 0
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#define TFT_DISPLAY 1
+#endif
+
+// This is to have MILAN_CLOCK as default
+#ifndef CLOCK_CONTROL_INTERRUPT
+#define MILAN_CLOCK 1
+#endif
+
+#if defined(MILAN_CLOCK)
+#include "WordClock.h"
+// not using interupts for word clock is not displaying time
+#define INTERRUPT_WORD_CLOCK 1
+// both methods are implemented but have different requirements for compilation
+// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
+#define CLOCK_CONTROL_INTERRUPT 1
+#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#endif
+
+
+#if defined(TFT_DISPLAY)
 
 #include <functional>
 
@@ -35,34 +72,10 @@ StringWindow win(&screen,
 	                 1,
 	                 ST77XX_WHITE,
 	                 ST77XX_BLACK,
-	                 "       Hi The world ! Text constructor     ",
+	                 "Initialize\n",
 	                 ST77XX_GREEN,
 	                 1);
-#else
-#include "WordClock.h"
 #endif
-
-// set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
-#if defined(MILAN_CLOCK)
-
-// not using interupts for word clock is not displaying time
-#define INTERRUPT_WORD_CLOCK 1
-// both methods are implemented but have different requirements for compilation
-// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
-#define CLOCK_CONTROL_INTERRUPT 1
-#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
-
-#else
-
-// not using interupts for word clock is not displaying time
-#define INTERRUPT_WORD_CLOCK 0
-// both methods are implemented but have different requirements for compilation
-// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
-#define CLOCK_CONTROL_INTERRUPT 0
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
-
-#endif
-
 
 #define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
 
@@ -111,11 +124,7 @@ repeating_timer_t timerClockControlAdjust;
 bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
-#ifndef CLOCK_CONTROL_INTERRUPT
-#define CLOCK_CONTROL_INTERRUPT 0
-#endif
-
-#if defined(WIFI_DCF77_DECODER)
+#if defined(TFT_DISPLAY)
 #include <WiFi.h>
 
 const char* ssid = "FibreBox_X6-1A0DE7";
@@ -124,9 +133,7 @@ const char* password = "GDAEPE69PTRXDTWPRC";
 WiFiServer server(80);
 #endif // defined(WIFI_DCF77_DECODER)
 
-#if defined(DCF77DispClock)
-
-#else
+#if defined(MILAN_CLOCK)
 WordClock theWordClock;
 #endif
 
@@ -186,22 +193,17 @@ bool isWifiOK = false;
 const bool wantsAServer = false;
 #endif // defined(WIFI_DCF77_DECODER)
 
-#if SERIAL_DEBUG
-#if defined(DCF77DispClock)
-
-//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, [&myClass](String aString) {return myClass.myMethod(aString);});
-//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [&win](String aString) {win.changeText(aString);}); // if local
-//DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false, [](String aString) { win.changeText(aString); }); // if global
+#if SERIAL_DEBUG 
+#if defined(WIFI_DCF77_DECODER)
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, wantsAServer);
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
 #endif
-
 #else
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
 #endif
 
-#if defined(DCF77DispClock)
+#if defined(TFT_DISPLAY)
             
 DCF77Window theDCFwin(&screen,
                      16, 2, 126, 106,
@@ -232,31 +234,7 @@ void setup() {
   DBG_PRINT("The DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
-#if defined(WIFI_DCF77_DECODER)
-WiFi.begin(ssid, password);
-
-  for(int waitWifi = 0; waitWifi < 100; waitWifi++) {
-  const auto status = WiFi.status();
-    if (status == WL_CONNECTED) {
-      isWifiOK = true;
-      Serial.print("Connected to Wifi. Server available at http://");
-      Serial.print(WiFi.localIP());
-      Serial.println("/");
-
-      server.begin();
-       break;
-    }
-    if (waitWifi == 0) {Serial.print("\nTrying to connect wifi. Status ");}
-    if (waitWifi == 0) {Serial.println(status);}
-    delay(500);
-    Serial.print(".");
-  }
-  if (! isWifiOK) {
-    Serial.println("\nNot Connected!");
-  }
-#endif // defined(WIFI_DCF77_DECODER)
-
-#if defined(DCF77DispClock)
+#if defined(TFT_DISPLAY)
   screen.begin();
  //screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
 
@@ -274,7 +252,57 @@ WiFi.begin(ssid, password);
   //dcf77.setStringCallback([](String aString) {win.changeText(aString);});
   dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
-#else
+#endif // defined(TFT_DISPLAY)
+
+#if defined(WIFI_DCF77_DECODER)
+#if defined(TFT_DISPLAY)
+      win.changeText("Trying to reach wifi...\n");
+#endif // defined(TFT_DISPLAY)
+WiFi.begin(ssid, password);
+
+  for(int waitWifi = 0; waitWifi < 100; waitWifi++) {
+  const auto status = WiFi.status();
+    if (status == WL_CONNECTED) {
+      isWifiOK = true;
+
+#if defined(TFT_DISPLAY)
+      win.changeText("http://");
+      win.changeText(WiFi.localIP().toString());
+      win.changeText("/\n");
+#endif // defined(TFT_DISPLAY)
+
+      DBG_PRINT("Connected to http://");
+      DBG_PRINT(WiFi.localIP());
+      DBG_PRINTLN("/");
+      delay(5000);
+
+      server.begin();
+       break;
+    }
+    if (waitWifi == 0) {DBG_PRINT("\nTrying to connect wifi. Status ");}
+    if (waitWifi == 0) {DBG_PRINTLN(status);}
+    #if defined(TFT_DISPLAY)
+      win.changeText("Attempt ");
+      win.changeText(String((long)waitWifi));
+      win.changeText("/100 ()");
+      win.changeText(String((long)status));
+      win.changeText(")\n");
+    #endif // defined(TFT_DISPLAY)
+    delay(500);
+    DBG_PRINT(".");
+  }
+  if (! isWifiOK) {
+    DBG_PRINTLN("\nCould not reach wifi!");
+#if defined(TFT_DISPLAY)
+    win.changeText("No wifi ...\n");
+        delay(1500);
+    win.changeText("No server.\n");
+#endif // defined(TFT_DISPLAY)
+    delay(1500);
+  }
+#endif // defined(WIFI_DCF77_DECODER)
+
+#if defined(MILAN_CLOCK)
   if (debug2) theWordClock.debugSetHoursLeds(1);
   theWordClock.ocDriveLowAll_fullOFF();
 #endif
@@ -296,15 +324,14 @@ WiFi.begin(ssid, password);
 
 void loop() {
 
-#if defined(DCF77DispClock)
-#else
+#if defined(MILAN_CLOCK)
   if (debug2) theWordClock.debugSetHoursLeds(3);
   // Test each output led
   const bool testEachLedFirst = false;
   if (testEachLedFirst) { 
     theWordClock.testLed();
   } 
-#endif // defined(DCF77DispClock)
+#endif // defined(MILAN_CLOCK)
   dcf77.reset();
   dcf77.initListen();
   DBG_PRINTLN("Start listening to dcf77 signal ...");
@@ -326,17 +353,17 @@ void loop() {
       const int curMin = minute(t);
       if (lastMinL1 != curMin) { // every minute
         lastMinL1 = curMin;
-#if defined(DCF77DispClock)
-#else
+
+#if defined(MILAN_CLOCK)
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
-#endif // defined(DCF77DispClock)
+#endif // defined(MILAN_CLOCK)
       }
 #if defined(WIFI_DCF77_DECODER)
-
+if (isWifiOK) {
   WiFiClient client = server.accept();
 
   if (client) {
-    Serial.println("New client connected");
+    DBG_PRINTLN("New client connected");
 
      // Attendre que des données arrivent
     unsigned long timeout = millis();
@@ -389,17 +416,17 @@ void loop() {
     client.flush();    // force envoi de tout le buffer TCP
     delay(10);
     client.stop();
-    Serial.println("Client disconnected");
+    DBG_PRINTLN("Client disconnected");
   }
+}
 #endif // defined(WIFI_DCF77_DECODER)
-#if defined(DCF77DispClock)
+#if defined(TFT_DISPLAY)
   win.drawShift(fastLoop);
-#else
-#endif // defined(DCF77DispClock)
+#endif // defined(TFT_DISPLAY)
 
     } // fastLoop
 
-#if defined(DCF77DispClock)
+#if defined(TFT_DISPLAY)
     time_t t = now();
     String lastTimeString = String(day(t)) + "/" +
                             String(month(t)) + "/" +
@@ -410,7 +437,9 @@ void loop() {
                             theClockControl.isReliable() ? "+" : "-";
                             "\n";
     win.changeText(lastTimeString);
-#else
+#endif // defined(TFT_DISPLAY)
+
+#if defined(MILAN_CLOCK)
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
     unsigned long int numberMinStaysInLoop = theClockControl.isReliable() ? 180 : 10; // 20 : 5; //
     DBG_PRINT("Stop listening to dcf77 for ");
@@ -446,6 +475,6 @@ void loop() {
     dcf77.reset();
     dcf77.initListen();
     DBG_PRINTLN("Restart listening to dcf77 signal ...");
-#endif // defined(DCF77DispClock)
+#endif // defined(MILAN_CLOCK)
   }
 }
