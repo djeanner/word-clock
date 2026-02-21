@@ -5,8 +5,8 @@ class DCF77Window : public TFT_Window {
   uint16_t ftextColor;
   uint8_t ftextSize;
   uint8_t fdotSize;
-  uint8_t fYmap;
-  uint8_t fLastPos;
+  int fYmap;
+  int fLastPos;
 public:
   DCF77Window(TFT_Screen* aScreen,
                int x, int y, int w, int h,

@@ -53,7 +53,7 @@ void StringWindow::drawShift(int startString) {
   startString = (startString - shiftPt) / widthChar;
   startString =  needScroll ? startString % sizeForShift : 0;
   int correctedDirectionshiftPt = needScroll ? widthChar - shiftPt - 1 : 0;
-  ftft->setTextColor(ftextColor, ST77XX_BLACK);
+  ftft->setTextColor(ftextColor, fbgColor);
   ftft->setTextSize(ftextSize);
 
   int ty = fty;

@@ -217,7 +217,6 @@ public:
   int getMonth() const ;
   bool areAllOK() const;
   String getString();
-  String getStringDEL() const ;
   void setRaw(size_t index, int input);
   int &raw(size_t index);
   int raw(size_t index) const;

@@ -357,7 +357,20 @@ void loop() {
 #if defined(MILAN_CLOCK)
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
 #endif // defined(MILAN_CLOCK)
-      }
+
+#if defined(TFT_DISPLAY)
+    time_t t = now();
+    String lastTimeString = String(day(t)) + "/" +
+                            String(month(t)) + "/" +
+                            String(year(t)) + " " +
+                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
+                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
+                            theClockControl.isReliable() ? "+" : "-";
+                            "\n";
+    win.changeText(lastTimeString);
+#endif // defined(TFT_DISPLAY)
+      } // every minute
 #if defined(WIFI_DCF77_DECODER)
 if (isWifiOK) {
   WiFiClient client = server.accept();
@@ -426,18 +439,7 @@ if (isWifiOK) {
 
     } // fastLoop
 
-#if defined(TFT_DISPLAY)
-    time_t t = now();
-    String lastTimeString = String(day(t)) + "/" +
-                            String(month(t)) + "/" +
-                            String(year(t)) + " " +
-                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
-                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
-                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            theClockControl.isReliable() ? "+" : "-";
-                            "\n";
-    win.changeText(lastTimeString);
-#endif // defined(TFT_DISPLAY)
+
 
 #if defined(MILAN_CLOCK)
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
