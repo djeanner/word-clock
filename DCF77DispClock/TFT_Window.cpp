@@ -17,7 +17,7 @@ TFT_Window::TFT_Window(TFT_Screen* aScreen,
 {
   ftft = aScreen->getTFT();
   fXpos = fx + fframeWidth;
-  fypos = fy + fframeWidth;
+  fYpos = fy + fframeWidth;
   fWidth = fw - 2 * fframeWidth;
   fHeigth = fh - 2 * fframeWidth; 
 }

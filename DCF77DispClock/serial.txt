@@ -12009,3 +12009,16 @@ Sat Feb 21 10:28:09 CET 2026
 Sat Feb 21 10:29:41 CET 2026
 **********************************************************************************
 Sat Feb 21 10:30:35 CET 2026
+**********************************************************************************
+Sat Feb 21 10:41:46 CET 2026
+
+Trying to connect wifi. Status 4
+........................................................................**********************************************************************************
+Sat Feb 21 10:43:09 CET 2026
+
+Trying to connect wifi. Status 6
+..............Connected to Wifi. Server available at http://192.168.1.64/
+End setup
+Start listening to dcf77 signal ...
+New client connected
+Client disconnected
