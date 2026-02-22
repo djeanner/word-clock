@@ -426,12 +426,8 @@ if (isWifiOK) {
     client.print(dcf77.getArchive(max + 1).c_str());
     client.println("");       
     client.print(dcf77.getArchive(max).c_str());
-    client.println("</pre>"); 
-    client.println(" <pre>");    
-    client.println("                  M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3 M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3 ");  
-    
-    client.println("</pre>"); 
-    client.println(" <pre>");
+    client.println("");          
+    client.println("                                                                              M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3_");
     for (int zu = 0; zu < max + 2; zu++) {
       client.print(dcf77.getArchive(zu).c_str());
       client.println("");       

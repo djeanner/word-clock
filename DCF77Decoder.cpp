@@ -489,6 +489,7 @@
           if (miniString == 11) {c = 'T';}
           if (miniString == 12) {c = 'F';}
           if (theBit == 1) {c = '*';}
+          if (theBit == 2) {c = '?';}
           if (theBit == 3) {c = 'S';}
           fStringForServer.setCharAt(pointerInString + u + 18 + 60, c);
         }
