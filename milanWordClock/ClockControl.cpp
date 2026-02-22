@@ -10,6 +10,18 @@
     delete[] tArray;
     delete[] rArray;
   }
+
+  String ClockControl::getStringDateHourMinReliable() {
+    time_t t = now();
+    return String(day(t)) + "/" +
+                            String(month(t)) + "/" +
+                            String(year(t)) + " " +
+                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
+                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
+                            (isReliable() ? "+" : "-");
+  }
+
   void ClockControl::setStringCallback(std::function<void(String)> aStringCallback) {
 	    fStringCallback = aStringCallback;
   }

@@ -15,7 +15,12 @@
   fSaveArchiveForServer(aSaveArchiveForServer),
   fPreviousIndexForServer(0),
   fMinPointerArchive(0),
-  fStringForServer("")
+  fStringForServer(""),
+  fNbCharPerLineArchive(180),
+  fNumberLineArchive(100),
+  fDeltaDur(0),
+  fDeltaPos(0),
+  fDeltaNum(0)
   {
     reset();
   }
@@ -23,6 +28,29 @@
   // destructor
   DCF77Decoder::~DCF77Decoder() {}
 
+  String DCF77Decoder::getErrorOnPulsePositions() {
+    String retString = "";
+    unsigned int val = fDeltaPos / fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) val);
+    retString += " ";
+    val = fDeltaDur / fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) fDeltaDur / fDeltaNum);
+    retString += " ";
+    val = fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) fDeltaNum);
+    retString += " ";
+    fDeltaDur = 0;
+    fDeltaPos = 0; 
+    fDeltaNum = 0; 
+    return retString;
+  }
+  
   void DCF77Decoder::setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback) {
 	    fBitDataCallback = aBitDataCallback;
   }
@@ -120,15 +148,15 @@
       if (durCycleMili > mi && durCycleMili < ma) {
 
         const size_t pointerInArrayMinus = (indexSec + 59) % 60;
+        setStart(pointerInArrayMinus);
         setRaw(pointerInArrayMinus, 3);
 #if DEBUGINWORDCLOCK
         // if (debug2) theWordClock.debugSetHoursLeds(4);
 #endif // DEBUGINWORDCLOCK
-        setStart(pointerInArrayMinus);
 
         if (areAllOK()) {
           tm.Year = CalendarYrToTm(2026);
-          tm.Month = getMonth() - 1;  // jan = 0;
+          tm.Month = getMonth();
           tm.Day = getDayM();
           tm.Hour = getHour();
           tm.Minute = getMin();
@@ -164,13 +192,14 @@
         int durUpMili = cMili - startUp;
         const int delta = absCircularDelta(startUp % 1000, getAverageCore());
         //milisOnly // storedDCF77upPulsesTimes.getAverageCore()
-
+       
+        
         // margin of 50 ms for duration and position
         const int critDeltaPos = isRingFull() ? 50 : 1000;  // set tight only when ring is full
         const int critDeltaDur = 50;                                             // if change 50, rewrite code below
         const int mi = 100 - critDeltaDur;
         const int ma = 200 + critDeltaDur;
-
+        
         if (durUpMili >= mi && durUpMili <= ma) {
           lastStartUp = startUp;
 
@@ -197,6 +226,9 @@
               deltaDUR = durUpMili - 200;
               pulse = "L";
             }
+            fDeltaDur += abs(deltaDUR);
+            fDeltaPos += delta;
+            fDeltaNum ++;
             if (cursor_on) {
               int signedDeltaStart = circularDelta(startUp % 1000, getAverageCore());
               if (debug9) thisPrint(" ");
@@ -276,7 +308,14 @@
     }
     storedDCF77upPulsesTimes.reset();
     fStringForServer = "";
-    for (int i = 0; i < 100*145; i++ ) {fStringForServer += " ";}
+    for (int i = 0; i < (fNumberLineArchive + 2) * fNbCharPerLineArchive; i++ ) {fStringForServer += " ";}
+    const unsigned int pointerInString = fNbCharPerLineArchive * fNumberLineArchive;
+    for (int8_t u = 0; u < 60 ; u++) {
+      const int8_t CUnits = u % 10;
+      const int8_t CTens = (u - CUnits) / 10;
+      fStringForServer.setCharAt(pointerInString + u + 18 + 60, static_cast<char>(CTens + 48));
+      fStringForServer.setCharAt(pointerInString + u + 18 + 60 + fNbCharPerLineArchive, static_cast<char>(CUnits + 48));
+    }
   }
 
   size_t DCF77Decoder::getStart() {
@@ -396,12 +435,6 @@
 
   // ---- validity ----
   bool DCF77Decoder::areAllOK() const {
-    if (getHour() > 24) return false;
-    if (getMin() > 60) return false;
-    if (getDayM() > 31) return false;
-    if (getDayW() > 7) return false;
-    if (getMonth() > 12) return false;
-
     if (getBit(DCF77Bit::BIT_M_)) return false;
     if (1 - getBit(DCF77Bit::BIT_S_)) return false;
 
@@ -409,16 +442,21 @@
     if (getBit(DCF77Bit::P2) != getParity(DCF77Bit::HOUR_1_, DCF77Bit::HOUR_20)) return false;
     if (getBit(DCF77Bit::P3) != getParity(DCF77Bit::DAYM_1_, DCF77Bit::YEAR_80)) return false;
 
+    if (getHour() > 24) return false;
+    if (getMin() > 60) return false;
+    if (getDayM() > 31) return false;
+    if (getDayW() > 7) return false;
+    if (getMonth() > 12) return false;
     return true;
   }
 
   String DCF77Decoder::getString() {
     String retString = "";
-    retString += "" + String((getHour() < 10 ? "0" : "") + String(getHour())) + ":";
-    retString += "" + String((getMin() < 10 ? "0" : "") + String(getMin())) + " ";
-    retString += "" + String(getDayWString()) + " ";
+    retString += String((getHour() < 10 ? "0" : "") + String(getHour())) + ":";
+    retString += String((getMin() < 10 ? "0" : "") + String(getMin())) + " ";
+    retString += String(getDayWString()) + " ";
     retString += getMonthString() + " ";
-    retString += String(getDayM()) + " ";
+    retString += String((getDayM() < 10 ? "0" : "") + String(getDayM())) + " ";
     retString += String((long)(2000 + getYear())) + " ";
     if (areAllOK()) {
       retString += "AllT  ";
@@ -433,22 +471,13 @@
     return retString; 
   }
 
-  String DCF77Decoder::getStringDEL() const {
-    String s;
-    s.reserve(60);
-    for (int i = 0; i < 60; ++i) {
-      switch (raw(i)) {
-        case 0: s += '0'; break;
-        case 1: s += '1'; break;
-        case 2: s += ' '; break;  // unknown
-        default: s += '?'; break;
-      }
-    }
-    return s;
+  int DCF77Decoder::getNumberLineArchive() {
+	    return fNumberLineArchive;
   }
+
   String DCF77Decoder::getArchive(int lineNumber) {
-    const int safelineNumber = lineNumber % 100;
-    return fStringForServer.substring(145 * safelineNumber, 145 * (safelineNumber + 1));
+    const int safelineNumber = lineNumber % (fNumberLineArchive + 2);
+    return fStringForServer.substring(fNbCharPerLineArchive * safelineNumber, fNbCharPerLineArchive * (safelineNumber + 1));
   }
 
   void DCF77Decoder::setRaw(size_t index, int input) {
@@ -457,43 +486,63 @@
 
     // for both cases below...
     const int shiftedIndex = (60 - (point_to_start + 1) + checked_index) % 60;
-    DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
+    const DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
     const int miniString = getDigit(bit);
 
     if (fSaveArchiveForServer) {
+      const unsigned int pointerInString = fNbCharPerLineArchive * fMinPointerArchive;
       if (index < fPreviousIndexForServer) { // every Minute
         fMinPointerArchive ++;
-        fMinPointerArchive = fMinPointerArchive % 100;
+        fMinPointerArchive = fMinPointerArchive % fNumberLineArchive;
+        time_t t = now();
+        String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
+                                (month(t) < 10 ? " " : "") + String(month(t)) + "/" +
+                                (year(t) < 10 ? " " : "") + String(year(t)) + " " +
+                                (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
+                                (minute(t) < 10 ? "0" : "") + String(minute(t)) + "  "
+                                ;
+        for (int u = 0; u < 18 ; u++) {
+          fStringForServer.setCharAt(pointerInString + u, lastTimeString.charAt(u));
+        }
+        const String inErro = getErrorOnPulsePositions();
+        for (int u = 0; u < 14 ; u++) {
+          fStringForServer.setCharAt(pointerInString + u + 18 + 120 + 1 + 28 + 1 , inErro.charAt(u));
+        }
       }
+
       fPreviousIndexForServer = index; 
-      unsigned int pointerInString = 145 * fMinPointerArchive;
-      const String tmpString = getString() + "                   ";
-      for (size_t u = 0; u < 22 ; u++) {
-        fStringForServer.setCharAt(pointerInString + u, tmpString.charAt(u));
-      }
-      pointerInString += 25;
       char c;
+      if (input == 3) { // every Minute
+        const String tmpString = getString() + "                   ";
+        for (int u = 0; u < 28 ; u++) {
+          fStringForServer.setCharAt(pointerInString + u + 18 + 120 + 1, tmpString.charAt(u));
+        }
+        for (int u = 0; u < 60 ; u++) {
+          const DCF77Bit bitIndex = static_cast<DCF77Bit>(u);
+          const int theBit = getBit(bitIndex);
+          const int miniString = getDigit(bitIndex);
+          c = ' ';
+          if (theBit == 1) {c = '*';}
+          if (theBit == 2) {c = '?';}
+          if (theBit == 3) {c = 'S';}
+          if (miniString == 11) {c = 'T';}
+          if (miniString == 12) {c = 'F';}
+          fStringForServer.setCharAt(pointerInString + u + 18 + 60, c);
+        }
+      }
+      
       switch (input) {
-          case 0: c = '0'; break;
+          case 0: c = ' '; break;
           case 1: c = '1'; break;
           case 2: c = '2'; break;
           case 3: c = '3'; break;
           case 4: c = '4'; break;
           default: c = '?'; break;
       }
-      fStringForServer.setCharAt(pointerInString + checked_index * 2 + 0, c);
-      switch (miniString) {
-          case 11: c = 'T'; break;
-          case 12: c = 'F'; break;
-          default: c = ' '; break;
-      }
-      fStringForServer.setCharAt(pointerInString + checked_index*2 + 1, c);
-      // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + 145));
+      fStringForServer.setCharAt(pointerInString + checked_index + 18, c);
+      // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + fNbCharPerLineArchive));
     }
     if (fBitDataCallback) {
-        const int shiftedIndex = (60 - (point_to_start + 1) + checked_index) % 60;
-        DCF77Bit bit = static_cast<DCF77Bit>(shiftedIndex);
-        const int miniString = getDigit(bit);
         fBitDataCallback(shiftedIndex, input, miniString, checked_index, 0);
     }
   }

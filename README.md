@@ -314,13 +314,3 @@ while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/dat
 
 while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
 
-012345678901234567890123456789012345678901234567890123456789-
-<p>   21/ 1/2026 21:50
-1  1    1 1    1 1 1    1 1    1 11 1    11  1   3  111    1-
-          T       T      T                      T           21:50 Sat Feb 21 2026 AllT   </p>
- <p>   21/ 1/2026 21:51
- 1      1 11   1 111    1 1    1 11 1    11  1   3  11   1  -
-          T       T      T                      T           21:51 Sat Feb 21 2026 AllT   </p>
- <p>   21/ 1/2026 21:52
-    1   1 1 1  1 111    1 1    1 11 1    11  1   3 1111 1  1-
-          T       T      T                      T           21:52 Sat Feb 21 2026 AllT  

@@ -19,6 +19,7 @@ private:
 public:
   ClockControl(size_t size, bool in3, bool abool);
   ~ClockControl() ;
+  String getStringDateHourMinReliable();
   void setStringCallback(std::function<void(String)> aStringCallback = {});
   void thisPrint(String aString = "") ;
   void thisPrintLN(String aString = "") ;

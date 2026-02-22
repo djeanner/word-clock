@@ -173,7 +173,11 @@ private:
   unsigned int fPreviousIndexForServer;
   unsigned int fMinPointerArchive;
   String fStringForServer;
-
+  int fNbCharPerLineArchive;
+  int fNumberLineArchive;
+  unsigned int fDeltaDur;
+  unsigned int fDeltaPos;
+  unsigned int fDeltaNum;
   int valueIndexSec[60];
   size_t point_to_start;
   int previVal;
@@ -189,6 +193,8 @@ public:
 
   // destructor
   ~DCF77Decoder();
+  String getErrorOnPulsePositions();
+  int getNumberLineArchive();
   String getArchive(int lineNumber);
   void setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback = {});
   void setStringCallback(std::function<void(String)> aStringCallback = {});
@@ -217,7 +223,6 @@ public:
   int getMonth() const ;
   bool areAllOK() const;
   String getString();
-  String getStringDEL() const ;
   void setRaw(size_t index, int input);
   int &raw(size_t index);
   int raw(size_t index) const;

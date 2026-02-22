@@ -47,9 +47,9 @@
 #define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 #endif
 
-#if defined(TFT_DISPLAY)
+#if defined(WIFI_DCF77_DECODER)
 #include "WifiControl.h"
-#endif // defined(TFT_DISPLAY)
+#endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(TFT_DISPLAY)
 
@@ -125,7 +125,7 @@ repeating_timer_t timerClockControlAdjust;
 bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
-#if defined(TFT_DISPLAY)
+#if defined(WIFI_DCF77_DECODER)
 WifiControl server(80);
 #endif // defined(TFT_DISPLAY)
 

@@ -145,12 +145,13 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 
 	// calc postion in map (lower part of the window)
 	if (indexCrude < fLastPos) {
-		int spaceBottom = (((int)getHeight() - posMultiLineBit) / (int)fdotSize) - 3;
+		int spaceBottom = (((int)getHeight() - posMultiLineBit) / (int)fdotSize) - 7;
 		if (spaceBottom < 1) {spaceBottom = 1;}
 		fLastPos = indexCrude;
 		fYmap++;
 		fYmap = fYmap % spaceBottom;
 	}
+	fLastPos = indexCrude;
 
 	posMultiLineBit += fYmap;
 	const uint16_t colorPixel = ST77XX_RED;

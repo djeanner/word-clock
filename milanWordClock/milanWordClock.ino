@@ -6,6 +6,9 @@
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
+#include "ClockControl.h"
+#include "DCF77Decoder.h"
+
 // set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
 #if defined(DCF77DispClock)
 // not using interupts for word clock is not displaying time
@@ -44,6 +47,9 @@
 #define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 #endif
 
+#if defined(WIFI_DCF77_DECODER)
+#include "WifiControl.h"
+#endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(TFT_DISPLAY)
 
@@ -76,9 +82,6 @@ StringWindow win(&screen,
 	                 ST77XX_GREEN,
 	                 1);
 #endif
-
-
-
 
 #define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
 
@@ -115,26 +118,16 @@ const bool debug5 = false;   // display long pause pulses on the fly
 bool debug2 = !debug8;       // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
 
-// needs some macro  ---- dont move higher up
-#include "ClockControl.h"
-#include "DCF77Decoder.h"
-
 #if CLOCK_CONTROL_INTERRUPT
-
 // -------- interrupt function prototypes --------
 bool clockControlAdjustCallback(repeating_timer_t *rt);
 repeating_timer_t timerClockControlAdjust;
 bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
-#if defined(TFT_DISPLAY)
-#include <WiFi.h>
-
-const char* ssid = "FibreBox_X6-1A0DE7";
-const char* password = "GDAEPE69PTRXDTWPRC";
-
-WiFiServer server(80);
-#endif // defined(WIFI_DCF77_DECODER)
+#if defined(WIFI_DCF77_DECODER)
+WifiControl server(80);
+#endif // defined(TFT_DISPLAY)
 
 #if defined(MILAN_CLOCK)
 WordClock theWordClock;
@@ -152,11 +145,6 @@ bool clockControlAdjustCallback(repeating_timer_t *rt) {
   return true;  // keep repeating
 }
 #endif // CLOCK_CONTROL_INTERRUPT
-
-// for DCF77Decoder header ... 
-#ifndef CLOCK_CONTROL_INTERRUPT
-#define CLOCK_CONTROL_INTERRUPT 1
-#endif
 
 #if INTERRUPT_WORD_CLOCK
 // Interrups to control led brightness without flickering
@@ -206,16 +194,14 @@ DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, L
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
 #endif
 
-#if defined(TFT_DISPLAY)
-            
+#if defined(TFT_DISPLAY)       
 DCF77Window theDCFwin(&screen,
                      16, 2, 126, 106,
                      1,
                      ST77XX_WHITE,
                      ST77XX_BLACK,
                      ST77XX_RED, 1, 2);
-
-#endif
+#endif // defined(TFT_DISPLAY)
 
 
 void setup() {
@@ -228,7 +214,6 @@ void setup() {
     &timer10ms);
 #endif // INTERRUPT_WORD_CLOCK
   
-
   DBG_BEGIN(115200);
   delay(2000);
 
@@ -237,56 +222,33 @@ void setup() {
   DBG_PRINT("The DCF77 pin : ");
   DBG_PRINTLN(RADIOINPUT);
 
-#if defined(WIFI_DCF77_DECODER)
-WiFi.begin(ssid, password);
-
-  for(int waitWifi = 0; waitWifi < 100; waitWifi++) {
-  const auto status = WiFi.status();
-    if (status == WL_CONNECTED) {
-      isWifiOK = true;
-      Serial.print("Connected to Wifi. Server available at http://");
-      Serial.print(WiFi.localIP());
-      Serial.println("/");
-
-      server.begin();
-       break;
-    }
-    if (waitWifi == 0) {Serial.print("\nTrying to connect wifi. Status ");}
-    if (waitWifi == 0) {Serial.println(status);}
-    delay(500);
-    Serial.print(".");
-  }
-  if (! isWifiOK) {
-    Serial.println("\nNot Connected!");
-  }
-#endif // defined(WIFI_DCF77_DECODER)
-
 #if defined(TFT_DISPLAY)
   screen.begin();
- //screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
-
 	win.draw();
-
 	theDCFwin.draw();
-  for (int l = 0 ; l < 100; l++) {
-	  win.drawShift(l);
-    if (l == 50) {win.changeText(" Rolling demo changed text. It needs a ENDL         \n");}
+  
+  const bool showControlClockOnDisplay = false;
+  if (showControlClockOnDisplay) {
+    theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
   }
-  win.changeText("Fixed demo changed text. It needs a ENDL         \n");
-  // note if global : []
-  // note if local : [&theDCFwin]
-  theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
-  //dcf77.setStringCallback([](String aString) {win.changeText(aString);});
   dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
 #endif // defined(TFT_DISPLAY)
+
+#if defined(WIFI_DCF77_DECODER)
+#if defined(TFT_DISPLAY)
+      win.changeText("Trying to reach wifi ...\n");
+#endif // defined(TFT_DISPLAY)
+      server.setStringCallback([](String aString) {win.changeText(aString);});
+      isWifiOK = server.beginControler();
+#endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
   if (debug2) theWordClock.debugSetHoursLeds(1);
   theWordClock.ocDriveLowAll_fullOFF();
 #endif
 
-  // setting up Led
+  // setting up Led and flash test
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, HIGH);
   delay(100);
@@ -296,12 +258,11 @@ WiFi.begin(ssid, password);
   delay(300);
   digitalWrite(LEDPIN, LOW);
 
-  delay(2000);
-
   DBG_PRINTLN("End setup");
 }
 
 void loop() {
+  DBG_PRINTLN("Start loop");
 
 #if defined(MILAN_CLOCK)
   if (debug2) theWordClock.debugSetHoursLeds(3);
@@ -311,112 +272,46 @@ void loop() {
     theWordClock.testLed();
   } 
 #endif // defined(MILAN_CLOCK)
+
   dcf77.reset();
   dcf77.initListen();
   DBG_PRINTLN("Start listening to dcf77 signal ...");
 
   for (long superLoop = 0; superLoop < 100000000; superLoop++) {
-    // Main listener : returns when have recieved valid time/date. May last minutes.
-
-    
     int lastMinL1 = minute(now());
     for (long fastLoop = 0; fastLoop < 1000000000; fastLoop ++) {
-      // fast loop 
+      // Main listener : returns when have recieved valid time/date. May last minutes.
       const int isTimeValid = dcf77.listen(theClockControl);
       if (isTimeValid == 1) {
         theClockControl.storeTime(dcf77.getTM());
         debug2 = false;  // stop
-        break;
       }
       time_t t = now();
       const int curMin = minute(t);
       if (lastMinL1 != curMin) { // every minute
         lastMinL1 = curMin;
-
 #if defined(MILAN_CLOCK)
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
 #endif // defined(MILAN_CLOCK)
-      }
+
+#if defined(TFT_DISPLAY)
+        win.changeText(theClockControl.getStringDateHourMinReliable() + "\n");
+#endif // defined(TFT_DISPLAY)
+      } // every minute
+      
 #if defined(WIFI_DCF77_DECODER)
-if (isWifiOK) {
-  WiFiClient client = server.accept();
+      if (isWifiOK) {
+        server.testIfRequest(theClockControl.isReliable(), dcf77);
+      } 
+#endif // defined(WIFI_DCF77_DECODER)
 
-  if (client) {
-    Serial.println("New client connected");
-
-     // Attendre que des données arrivent
-    unsigned long timeout = millis();
-    while (!client.available()) {
-      if (millis() - timeout > 2000) {
-        client.stop();
+#if defined(TFT_DISPLAY)
+      win.drawShift(fastLoop);
+#endif // defined(TFT_DISPLAY)
+      if (isTimeValid == 1) {
         break;
       }
-    }
-
-    // Lire toute la requête HTTP
-    while (client.available()) {
-      client.read();
-    }
-    // Réponse HTTP
-    client.print("HTTP/1.1 200 OK\r\n");
-    client.print("Content-Type: text/html\r\n");
-    //client.print("Content-Type: application/json\r\n"); // JSON header
-    client.print("Connection: close\r\n");
-    client.print("\r\n");
-
-    // main part
-    client.println("<!DOCTYPE html>");
-    client.println("<html>");
-    client.println(" <h1>Pico W Web Server</h1>");
-
-    time_t t = now();
-    String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
-                            (month(t) < 10 ? " " : "") + String(month(t)) + "/" +
-                            (year(t) < 10 ? " " : "") + String(year(t)) + " " +
-                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
-                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + 
-                            ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            " " + (theClockControl.isReliable() ? "(+)" : "(-)") +
-                            "\n";
-    client.print(" <p>");
-    client.print(lastTimeString);
-    client.println(" </p>");                    
-    for (int zu = 0; zu < 100; zu++) {
-      client.print(" <p>");
-      // if (zu < 10) {client.print(" ");}
-      // client.print(zu);
-      client.print("   ");
-      client.print(dcf77.getArchive(zu).c_str());
-      client.println(" </p>");
-    }
-    client.println("</html>");
-
-
-    client.flush();    // force envoi de tout le buffer TCP
-    delay(10);
-    client.stop();
-    Serial.println("Client disconnected");
-  }
-}
-#endif // defined(WIFI_DCF77_DECODER)
-#if defined(TFT_DISPLAY)
-  win.drawShift(fastLoop);
-#endif // defined(TFT_DISPLAY)
-
     } // fastLoop
-
-#if defined(TFT_DISPLAY)
-    time_t t = now();
-    String lastTimeString = String(day(t)) + "/" +
-                            String(month(t)) + "/" +
-                            String(year(t)) + " " +
-                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
-                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
-                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            theClockControl.isReliable() ? "+" : "-";
-                            "\n";
-    win.changeText(lastTimeString);
-#endif // defined(TFT_DISPLAY)
 
 #if defined(MILAN_CLOCK)
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
@@ -428,14 +323,13 @@ if (isWifiOK) {
 
     theWordClock.setWordClock(minute(t), hour(t), theClockControl.isReliable());
     int lastMin = minute(t);
-    for (unsigned long long loo = 0UL; loo < 1000000000; loo++) {
+    for (unsigned long long loo = 0ULL; loo < 1000000000; loo++) {
       t = now();
       int curMin = minute(t);
       // when minute changes
       if (curMin != lastMin) {
         lastMin = curMin;
         // perturb time every minute.. to see how manages
-        //
         //
         // setTime(now() + 1);
         //
