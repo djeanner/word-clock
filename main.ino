@@ -427,7 +427,7 @@ if (isWifiOK) {
     client.println("");       
     client.print(dcf77.getArchive(max).c_str());
     client.println("");          
-    client.println("                                                                              M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3_");
+    client.println("                                                                              M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3_                       Error: Pos Dur Num");
     for (int zu = 0; zu < max + 2; zu++) {
       client.print(dcf77.getArchive(zu).c_str());
       client.println("");       

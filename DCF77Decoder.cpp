@@ -16,8 +16,11 @@
   fPreviousIndexForServer(0),
   fMinPointerArchive(0),
   fStringForServer(""),
-  fNbCharPerLineArchive(167),
-  fNumberLineArchive(100)
+  fNbCharPerLineArchive(180),
+  fNumberLineArchive(100),
+  fDeltaDur(0),
+  fDeltaPos(0),
+  fDeltaNum(0)
   {
     reset();
   }
@@ -25,6 +28,29 @@
   // destructor
   DCF77Decoder::~DCF77Decoder() {}
 
+  String DCF77Decoder::getErrorOnPulsePositions() {
+    String retString = "";
+    unsigned int val = fDeltaPos / fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) val);
+    retString += " ";
+    val = fDeltaDur / fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) fDeltaDur / fDeltaNum);
+    retString += " ";
+    val = fDeltaNum;
+    if (val < 100) {retString += " ";}
+    if (val < 10) {retString += " ";}
+    retString += String((unsigned int) fDeltaNum);
+    retString += " ";
+    fDeltaDur = 0;
+    fDeltaPos = 0; 
+    fDeltaNum = 0; 
+    return retString;
+  }
+  
   void DCF77Decoder::setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback) {
 	    fBitDataCallback = aBitDataCallback;
   }
@@ -166,13 +192,14 @@
         int durUpMili = cMili - startUp;
         const int delta = absCircularDelta(startUp % 1000, getAverageCore());
         //milisOnly // storedDCF77upPulsesTimes.getAverageCore()
-
+       
+        
         // margin of 50 ms for duration and position
         const int critDeltaPos = isRingFull() ? 50 : 1000;  // set tight only when ring is full
         const int critDeltaDur = 50;                                             // if change 50, rewrite code below
         const int mi = 100 - critDeltaDur;
         const int ma = 200 + critDeltaDur;
-
+        
         if (durUpMili >= mi && durUpMili <= ma) {
           lastStartUp = startUp;
 
@@ -199,6 +226,9 @@
               deltaDUR = durUpMili - 200;
               pulse = "L";
             }
+            fDeltaDur += abs(deltaDUR);
+            fDeltaPos += delta;
+            fDeltaNum ++;
             if (cursor_on) {
               int signedDeltaStart = circularDelta(startUp % 1000, getAverageCore());
               if (debug9) thisPrint(" ");
@@ -473,6 +503,10 @@
                                 ;
         for (int u = 0; u < 18 ; u++) {
           fStringForServer.setCharAt(pointerInString + u, lastTimeString.charAt(u));
+        }
+        const String inErro = getErrorOnPulsePositions();
+        for (int u = 0; u < 14 ; u++) {
+          fStringForServer.setCharAt(pointerInString + u + 18 + 120 + 1 + 28 + 1 , inErro.charAt(u));
         }
       }
       char c;

@@ -175,7 +175,9 @@ private:
   String fStringForServer;
   int fNbCharPerLineArchive;
   int fNumberLineArchive;
-
+  unsigned int fDeltaDur;
+  unsigned int fDeltaPos;
+  unsigned int fDeltaNum;
   int valueIndexSec[60];
   size_t point_to_start;
   int previVal;
@@ -191,6 +193,7 @@ public:
 
   // destructor
   ~DCF77Decoder();
+  String getErrorOnPulsePositions();
   int getNumberLineArchive();
   String getArchive(int lineNumber);
   void setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback = {});
