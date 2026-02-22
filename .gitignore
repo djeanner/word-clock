@@ -23,3 +23,6 @@ pip-wheel-metadata/
 
 # pybind11 compiled extensions (optional if you rebuild)
 *.so
+
+# Wifi password
+password.h

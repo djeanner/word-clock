@@ -509,6 +509,8 @@
           fStringForServer.setCharAt(pointerInString + u + 18 + 120 + 1 + 28 + 1 , inErro.charAt(u));
         }
       }
+
+      fPreviousIndexForServer = index; 
       char c;
       if (input == 3) { // every Minute
         const String tmpString = getString() + "                   ";
@@ -537,8 +539,7 @@
           case 4: c = '4'; break;
           default: c = '?'; break;
       }
-      fStringForServer.setCharAt(pointerInString + checked_index + 18 + 0, c);
-      fPreviousIndexForServer = index; 
+      fStringForServer.setCharAt(pointerInString + checked_index + 18, c);
       // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + fNbCharPerLineArchive));
     }
     if (fBitDataCallback) {

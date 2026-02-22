@@ -125,12 +125,11 @@ bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
 #if defined(TFT_DISPLAY)
-#include <WiFi.h>
+//#include <WiFi.h>
+#include "WifiControl.h"
 
-const char* ssid = "FibreBox_X6-1A0DE7";
-const char* password = "GDAEPE69PTRXDTWPRC";
+WifiControl server(80);
 
-WiFiServer server(80);
 #endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
@@ -261,48 +260,8 @@ void setup() {
 #if defined(TFT_DISPLAY)
       win.changeText("Trying to reach wifi ...\n");
 #endif // defined(TFT_DISPLAY)
-WiFi.begin(ssid, password);
-
-  for(int waitWifi = 0; waitWifi < 100; waitWifi++) {
-  const auto status = WiFi.status();
-    if (status == WL_CONNECTED) {
-      isWifiOK = true;
-
-#if defined(TFT_DISPLAY)
-      win.changeText("http://");
-      win.changeText(WiFi.localIP().toString());
-      win.changeText("/\n");
-#endif // defined(TFT_DISPLAY)
-
-      DBG_PRINT("Connected to http://");
-      DBG_PRINT(WiFi.localIP());
-      DBG_PRINTLN("/");
-      delay(5000);
-
-      server.begin();
-       break;
-    }
-    if (waitWifi == 0) {DBG_PRINT("\nTrying to connect wifi. Status ");}
-    if (waitWifi == 0) {DBG_PRINTLN(status);}
-    #if defined(TFT_DISPLAY)
-      win.changeText("Attempt ");
-      win.changeText(String((long)waitWifi));
-      win.changeText("/100 ()");
-      win.changeText(String((long)status));
-      win.changeText(")\n");
-    #endif // defined(TFT_DISPLAY)
-    delay(500);
-    DBG_PRINT(".");
-  }
-  if (! isWifiOK) {
-    DBG_PRINTLN("\nCould not reach wifi!");
-#if defined(TFT_DISPLAY)
-    win.changeText("No wifi ...\n");
-        delay(1500);
-    win.changeText("No server.\n");
-#endif // defined(TFT_DISPLAY)
-    delay(1500);
-  }
+      server.setStringCallback([](String aString) {win.changeText(aString);});
+      isWifiOK = server.beginControler();
 #endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
@@ -319,8 +278,6 @@ WiFi.begin(ssid, password);
   digitalWrite(LEDPIN, HIGH);
   delay(300);
   digitalWrite(LEDPIN, LOW);
-
-  delay(2000);
 
   DBG_PRINTLN("End setup");
 }
@@ -361,95 +318,22 @@ void loop() {
 #endif // defined(MILAN_CLOCK)
 
 #if defined(TFT_DISPLAY)
-    time_t t = now();
-    String lastTimeString = String(day(t)) + "/" +
-                            String(month(t)) + "/" +
-                            String(year(t)) + " " +
-                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
-                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
-                            // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            (theClockControl.isReliable() ? "+" : "-") +
-                            "\n";
-    win.changeText(lastTimeString);
+    win.changeText(theClockControl.getStringDateHourMinReliable() + "\n");
 #endif // defined(TFT_DISPLAY)
       } // every minute
-      if (isTimeValid == 1) {
-        break;
-      }
+      
 #if defined(WIFI_DCF77_DECODER)
 if (isWifiOK) {
-  WiFiClient client = server.accept();
-
-  if (client) {
-    DBG_PRINTLN("New client connected");
-
-     // Attendre que des données arrivent
-    unsigned long timeout = millis();
-    while (!client.available()) {
-      if (millis() - timeout > 2000) {
-        client.stop();
-        break;
-      }
-    }
-
-    // Lire toute la requête HTTP
-    while (client.available()) {
-      client.read();
-    }
-    // Réponse HTTP
-    client.print("HTTP/1.1 200 OK\r\n");
-    client.print("Content-Type: text/html\r\n");
-    //client.print("Content-Type: application/json\r\n"); // JSON header
-    client.print("Connection: close\r\n");
-    client.print("\r\n");
-
-    // main part
-    client.println("<!DOCTYPE html>");
-    client.println("<html>");
-    client.println(" <h1>DCF77 data</h1>");
-    client.println(" <h2>Running on Pico W Web Server</h2>");
-
-    time_t t = now();
-    String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
-                            (month(t) < 10 ? " " : "") + String(month(t)) + "/" +
-                            (year(t) < 10 ? " " : "") + String(year(t)) + " " +
-                            (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
-                            (minute(t) < 10 ? "0" : "") + String(minute(t)) + 
-                            ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            " " + (theClockControl.isReliable() ? "(+)" : "(-)") +
-                            "";
-    client.print(" <pre>");
-    client.print(lastTimeString);
-    client.println("</pre>");  
-    const int max = dcf77.getNumberLineArchive();
-    client.println(" <pre>");
-    client.print(dcf77.getArchive(max + 1).c_str());
-    client.println("");       
-    client.print(dcf77.getArchive(max).c_str());
-    client.println("");          
-    client.println("                                                                              M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3_                       Error: Pos Dur Num");
-    for (int zu = 0; zu < max + 2; zu++) {
-      client.print(dcf77.getArchive(zu).c_str());
-      client.println("");       
-    }
-    client.println("</pre>");
-    client.println("</html>");
-
-
-    client.flush();    // force envoi de tout le buffer TCP
-    delay(10);
-    client.stop();
-    DBG_PRINTLN("Client disconnected");
-  }
-}
+  server.testIfRequest(theClockControl.isReliable(), dcf77);
+} 
 #endif // defined(WIFI_DCF77_DECODER)
 #if defined(TFT_DISPLAY)
   win.drawShift(fastLoop);
 #endif // defined(TFT_DISPLAY)
-
+      if (isTimeValid == 1) {
+        break;
+      }
     } // fastLoop
-
-
 
 #if defined(MILAN_CLOCK)
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
@@ -461,7 +345,7 @@ if (isWifiOK) {
 
     theWordClock.setWordClock(minute(t), hour(t), theClockControl.isReliable());
     int lastMin = minute(t);
-    for (unsigned long long loo = 0UL; loo < 1000000000; loo++) {
+    for (unsigned long long loo = 0ULL; loo < 1000000000; loo++) {
       t = now();
       int curMin = minute(t);
       // when minute changes

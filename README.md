@@ -286,7 +286,10 @@ cp DCF77Window.cpp DCF77Window.h DCF77DispClock
 cp TFT_Window.cpp TFT_Window.h DCF77DispClock
 cp TFT_Screen.cpp TFT_Screen.h DCF77DispClock
 cp StringWindow.cpp StringWindow.h DCF77DispClock
+cp WifiControl.cpp WifiControl.h DCF77DispClock
+cp password.h DCF77DispClock
 cp main.ino DCF77DispClock/DCF77DispClock.ino
+
 cd DCF77DispClock
 	echo "**********************************************************************************" >> serial.txt
 	date >> serial.txt
