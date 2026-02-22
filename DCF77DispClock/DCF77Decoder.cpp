@@ -16,7 +16,7 @@
   fPreviousIndexForServer(0),
   fMinPointerArchive(0),
   fStringForServer(""),
-  fNbCharPerLineArchive(166),
+  fNbCharPerLineArchive(167),
   fNumberLineArchive(100)
   {
     reset();
@@ -130,7 +130,7 @@
 
         if (areAllOK()) {
           tm.Year = CalendarYrToTm(2026);
-          tm.Month = getMonth() - 1;  // jan = 0;
+          tm.Month = getMonth();
           tm.Day = getDayM();
           tm.Hour = getHour();
           tm.Minute = getMin();
@@ -479,18 +479,18 @@
       if (input == 3) { // every Minute
         const String tmpString = getString() + "                   ";
         for (int u = 0; u < 28 ; u++) {
-          fStringForServer.setCharAt(pointerInString + u + 18 + 120, tmpString.charAt(u));
+          fStringForServer.setCharAt(pointerInString + u + 18 + 120 + 1, tmpString.charAt(u));
         }
         for (int u = 0; u < 60 ; u++) {
           const DCF77Bit bitIndex = static_cast<DCF77Bit>(u);
           const int theBit = getBit(bitIndex);
           const int miniString = getDigit(bitIndex);
           c = ' ';
-          if (miniString == 11) {c = 'T';}
-          if (miniString == 12) {c = 'F';}
           if (theBit == 1) {c = '*';}
           if (theBit == 2) {c = '?';}
           if (theBit == 3) {c = 'S';}
+          if (miniString == 11) {c = 'T';}
+          if (miniString == 12) {c = 'F';}
           fStringForServer.setCharAt(pointerInString + u + 18 + 60, c);
         }
       }
