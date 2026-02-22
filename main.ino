@@ -248,7 +248,10 @@ void setup() {
   win.changeText("Fixed demo changed text. It needs a ENDL         \n");
   // note if global : []
   // note if local : [&theDCFwin]
-  theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
+  const bool showControlClockOnDisplay = false;
+  if (showControlClockOnDisplay) {
+    theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
+  }
   //dcf77.setStringCallback([](String aString) {win.changeText(aString);});
   dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
@@ -347,7 +350,6 @@ void loop() {
       if (isTimeValid == 1) {
         theClockControl.storeTime(dcf77.getTM());
         debug2 = false;  // stop
-        break;
       }
       time_t t = now();
       const int curMin = minute(t);
@@ -366,11 +368,14 @@ void loop() {
                             (hour(t) < 10 ? " " : "") + String(hour(t)) + ":" +
                             (minute(t) < 10 ? "0" : "") + String(minute(t)) + " " +
                             // ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
-                            theClockControl.isReliable() ? "+" : "-";
+                            (theClockControl.isReliable() ? "+" : "-") +
                             "\n";
     win.changeText(lastTimeString);
 #endif // defined(TFT_DISPLAY)
       } // every minute
+      if (isTimeValid == 1) {
+        break;
+      }
 #if defined(WIFI_DCF77_DECODER)
 if (isWifiOK) {
   WiFiClient client = server.accept();
