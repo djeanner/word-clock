@@ -6,6 +6,9 @@
 #include <TimeLib.h>
 #include "hardware/timer.h"
 
+#include "ClockControl.h"
+#include "DCF77Decoder.h"
+
 // set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
 #if defined(DCF77DispClock)
 // not using interupts for word clock is not displaying time
@@ -44,6 +47,9 @@
 #define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 #endif
 
+#if defined(TFT_DISPLAY)
+#include "WifiControl.h"
+#endif // defined(TFT_DISPLAY)
 
 #if defined(TFT_DISPLAY)
 
@@ -112,12 +118,7 @@ const bool debug5 = false;   // display long pause pulses on the fly
 bool debug2 = !debug8;       // front display debugging steps
 const bool debug3 = true;    // dump info about the validation process of times
 
-// needs some macro  ---- dont move higher up
-#include "ClockControl.h"
-#include "DCF77Decoder.h"
-
 #if CLOCK_CONTROL_INTERRUPT
-
 // -------- interrupt function prototypes --------
 bool clockControlAdjustCallback(repeating_timer_t *rt);
 repeating_timer_t timerClockControlAdjust;
@@ -125,12 +126,8 @@ bool thereIsAtimerClockControlAdjust_running = false;
 #endif // CLOCK_CONTROL_INTERRUPT
 
 #if defined(TFT_DISPLAY)
-//#include <WiFi.h>
-#include "WifiControl.h"
-
 WifiControl server(80);
-
-#endif // defined(WIFI_DCF77_DECODER)
+#endif // defined(TFT_DISPLAY)
 
 #if defined(MILAN_CLOCK)
 WordClock theWordClock;
@@ -148,11 +145,6 @@ bool clockControlAdjustCallback(repeating_timer_t *rt) {
   return true;  // keep repeating
 }
 #endif // CLOCK_CONTROL_INTERRUPT
-
-// for DCF77Decoder header ... 
-#ifndef CLOCK_CONTROL_INTERRUPT
-#define CLOCK_CONTROL_INTERRUPT 1
-#endif
 
 #if INTERRUPT_WORD_CLOCK
 // Interrups to control led brightness without flickering
@@ -202,16 +194,14 @@ DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, L
 DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
 #endif
 
-#if defined(TFT_DISPLAY)
-            
+#if defined(TFT_DISPLAY)       
 DCF77Window theDCFwin(&screen,
                      16, 2, 126, 106,
                      1,
                      ST77XX_WHITE,
                      ST77XX_BLACK,
                      ST77XX_RED, 1, 2);
-
-#endif
+#endif // defined(TFT_DISPLAY)
 
 
 void setup() {
@@ -224,7 +214,6 @@ void setup() {
     &timer10ms);
 #endif // INTERRUPT_WORD_CLOCK
   
-
   DBG_BEGIN(115200);
   delay(2000);
 
@@ -235,23 +224,13 @@ void setup() {
 
 #if defined(TFT_DISPLAY)
   screen.begin();
- //screen.getTFT()->drawRect(2, 2, screen.getWidth(), screen.getHeight(), ST77XX_RED);
-
 	win.draw();
-
 	theDCFwin.draw();
-  for (int l = 0 ; l < 100; l++) {
-	  win.drawShift(l);
-    if (l == 50) {win.changeText(" Rolling demo changed text. It needs a ENDL         \n");}
-  }
-  win.changeText("Fixed demo changed text. It needs a ENDL         \n");
-  // note if global : []
-  // note if local : [&theDCFwin]
+  
   const bool showControlClockOnDisplay = false;
   if (showControlClockOnDisplay) {
     theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
   }
-  //dcf77.setStringCallback([](String aString) {win.changeText(aString);});
   dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
 #endif // defined(TFT_DISPLAY)
@@ -269,7 +248,7 @@ void setup() {
   theWordClock.ocDriveLowAll_fullOFF();
 #endif
 
-  // setting up Led
+  // setting up Led and flash test
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, HIGH);
   delay(100);
@@ -283,6 +262,7 @@ void setup() {
 }
 
 void loop() {
+  DBG_PRINTLN("Start loop");
 
 #if defined(MILAN_CLOCK)
   if (debug2) theWordClock.debugSetHoursLeds(3);
@@ -292,17 +272,15 @@ void loop() {
     theWordClock.testLed();
   } 
 #endif // defined(MILAN_CLOCK)
+
   dcf77.reset();
   dcf77.initListen();
   DBG_PRINTLN("Start listening to dcf77 signal ...");
 
   for (long superLoop = 0; superLoop < 100000000; superLoop++) {
-    // Main listener : returns when have recieved valid time/date. May last minutes.
-
-    
     int lastMinL1 = minute(now());
     for (long fastLoop = 0; fastLoop < 1000000000; fastLoop ++) {
-      // fast loop 
+      // Main listener : returns when have recieved valid time/date. May last minutes.
       const int isTimeValid = dcf77.listen(theClockControl);
       if (isTimeValid == 1) {
         theClockControl.storeTime(dcf77.getTM());
@@ -312,23 +290,23 @@ void loop() {
       const int curMin = minute(t);
       if (lastMinL1 != curMin) { // every minute
         lastMinL1 = curMin;
-
 #if defined(MILAN_CLOCK)
         theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
 #endif // defined(MILAN_CLOCK)
 
 #if defined(TFT_DISPLAY)
-    win.changeText(theClockControl.getStringDateHourMinReliable() + "\n");
+        win.changeText(theClockControl.getStringDateHourMinReliable() + "\n");
 #endif // defined(TFT_DISPLAY)
       } // every minute
       
 #if defined(WIFI_DCF77_DECODER)
-if (isWifiOK) {
-  server.testIfRequest(theClockControl.isReliable(), dcf77);
-} 
+      if (isWifiOK) {
+        server.testIfRequest(theClockControl.isReliable(), dcf77);
+      } 
 #endif // defined(WIFI_DCF77_DECODER)
+
 #if defined(TFT_DISPLAY)
-  win.drawShift(fastLoop);
+      win.drawShift(fastLoop);
 #endif // defined(TFT_DISPLAY)
       if (isTimeValid == 1) {
         break;
@@ -352,7 +330,6 @@ if (isWifiOK) {
       if (curMin != lastMin) {
         lastMin = curMin;
         // perturb time every minute.. to see how manages
-        //
         //
         // setTime(now() + 1);
         //
