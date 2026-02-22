@@ -15,7 +15,9 @@
   fSaveArchiveForServer(aSaveArchiveForServer),
   fPreviousIndexForServer(0),
   fMinPointerArchive(0),
-  fStringForServer("")
+  fStringForServer(""),
+  fNbCharPerLineArchive(166),
+  fNumberLineArchive(100)
   {
     reset();
   }
@@ -276,7 +278,14 @@
     }
     storedDCF77upPulsesTimes.reset();
     fStringForServer = "";
-    for (int i = 0; i < 100 * 166; i++ ) {fStringForServer += " ";}
+    for (int i = 0; i < (fNumberLineArchive + 2) * fNbCharPerLineArchive; i++ ) {fStringForServer += " ";}
+    const unsigned int pointerInString = fNbCharPerLineArchive * fNumberLineArchive;
+    for (int8_t u = 0; u < 60 ; u++) {
+      const int8_t CUnits = u % 10;
+      const int8_t CTens = (u - CUnits) / 10;
+      fStringForServer.setCharAt(pointerInString + u + 18 + 60, static_cast<char>(CTens + 48));
+      fStringForServer.setCharAt(pointerInString + u + 18 + 60 + fNbCharPerLineArchive, static_cast<char>(CUnits + 48));
+    }
   }
 
   size_t DCF77Decoder::getStart() {
@@ -432,9 +441,13 @@
     return retString; 
   }
 
+  int DCF77Decoder::getNumberLineArchive() {
+	    return fNumberLineArchive;
+  }
+
   String DCF77Decoder::getArchive(int lineNumber) {
-    const int safelineNumber = lineNumber % 100;
-    return fStringForServer.substring(166 * safelineNumber, 166 * (safelineNumber + 1));
+    const int safelineNumber = lineNumber % (fNumberLineArchive + 2);
+    return fStringForServer.substring(fNbCharPerLineArchive * safelineNumber, fNbCharPerLineArchive * (safelineNumber + 1));
   }
 
   void DCF77Decoder::setRaw(size_t index, int input) {
@@ -447,10 +460,10 @@
     const int miniString = getDigit(bit);
 
     if (fSaveArchiveForServer) {
-      unsigned int pointerInString = 166 * fMinPointerArchive;
+      const unsigned int pointerInString = fNbCharPerLineArchive * fMinPointerArchive;
       if (index < fPreviousIndexForServer) { // every Minute
         fMinPointerArchive ++;
-        fMinPointerArchive = fMinPointerArchive % 100;
+        fMinPointerArchive = fMinPointerArchive % fNumberLineArchive;
         time_t t = now();
         String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
                                 (month(t) < 10 ? " " : "") + String(month(t)) + "/" +
@@ -462,16 +475,25 @@
           fStringForServer.setCharAt(pointerInString + u, lastTimeString.charAt(u));
         }
       }
+      char c;
       if (input == 3) { // every Minute
         const String tmpString = getString() + "                   ";
         for (int u = 0; u < 28 ; u++) {
           fStringForServer.setCharAt(pointerInString + u + 18 + 120, tmpString.charAt(u));
         }
+        for (int u = 0; u < 60 ; u++) {
+          const DCF77Bit bitIndex = static_cast<DCF77Bit>(u);
+          const int theBit = getBit(bitIndex);
+          const int miniString = getDigit(bitIndex);
+          c = ' ';
+          if (miniString == 11) {c = 'T';}
+          if (miniString == 12) {c = 'F';}
+          if (theBit == 1) {c = '*';}
+          if (theBit == 3) {c = 'S';}
+          fStringForServer.setCharAt(pointerInString + u + 18 + 60, c);
+        }
       }
-      fPreviousIndexForServer = index; 
       
-      pointerInString += 18;
-      char c;
       switch (input) {
           case 0: c = ' '; break;
           case 1: c = '1'; break;
@@ -480,14 +502,9 @@
           case 4: c = '4'; break;
           default: c = '?'; break;
       }
-      fStringForServer.setCharAt(pointerInString + checked_index  + 0, c);
-      switch (miniString) {
-          case 11: c = 'T'; break;
-          case 12: c = 'F'; break;
-          default: c = ' '; break;
-      }
-      fStringForServer.setCharAt(pointerInString + checked_index + 60, c);
-      // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + 166));
+      fStringForServer.setCharAt(pointerInString + checked_index + 18 + 0, c);
+      fPreviousIndexForServer = index; 
+      // thisPrintLN(fStringForServer.substring(pointerInString, pointerInString + fNbCharPerLineArchive));
     }
     if (fBitDataCallback) {
         fBitDataCallback(shiftedIndex, input, miniString, checked_index, 0);

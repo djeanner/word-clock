@@ -259,7 +259,7 @@ void setup() {
 
 #if defined(WIFI_DCF77_DECODER)
 #if defined(TFT_DISPLAY)
-      win.changeText("Trying to reach wifi...\n");
+      win.changeText("Trying to reach wifi ...\n");
 #endif // defined(TFT_DISPLAY)
 WiFi.begin(ssid, password);
 
@@ -406,7 +406,8 @@ if (isWifiOK) {
     // main part
     client.println("<!DOCTYPE html>");
     client.println("<html>");
-    client.println(" <h1>Pico W Web Server</h1>");
+    client.println(" <h1>DCF77 data</h1>");
+    client.println(" <h2>Running on Pico W Web Server</h2>");
 
     time_t t = now();
     String lastTimeString = (day(t) < 10 ? " " : "") + String(day(t)) + "/" +
@@ -416,18 +417,26 @@ if (isWifiOK) {
                             (minute(t) < 10 ? "0" : "") + String(minute(t)) + 
                             ":" + (second(t) < 10 ? "0" : "") + String(second(t)) +
                             " " + (theClockControl.isReliable() ? "(+)" : "(-)") +
-                            "\n";
-    client.print(" <p>");
+                            "";
+    client.print(" <pre>");
     client.print(lastTimeString);
-    client.println(" </p>");                    
-    for (int zu = 0; zu < 100; zu++) {
-      client.print(" <p>");
-      // if (zu < 10) {client.print(" ");}
-      // client.print(zu);
-      client.print("   ");
+    client.println("</pre>");  
+    const int max = dcf77.getNumberLineArchive();
+    client.println(" <pre>");
+    client.print(dcf77.getArchive(max + 1).c_str());
+    client.println("");       
+    client.print(dcf77.getArchive(max).c_str());
+    client.println("</pre>"); 
+    client.println(" <pre>");    
+    client.println("                  M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3 M??????????????RAZzaS&lt; min &gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  &gt;3 ");  
+    
+    client.println("</pre>"); 
+    client.println(" <pre>");
+    for (int zu = 0; zu < max + 2; zu++) {
       client.print(dcf77.getArchive(zu).c_str());
-      client.println(" </p>");
+      client.println("");       
     }
+    client.println("</pre>");
     client.println("</html>");
 
 

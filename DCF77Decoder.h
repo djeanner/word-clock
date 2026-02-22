@@ -173,6 +173,8 @@ private:
   unsigned int fPreviousIndexForServer;
   unsigned int fMinPointerArchive;
   String fStringForServer;
+  int fNbCharPerLineArchive;
+  int fNumberLineArchive;
 
   int valueIndexSec[60];
   size_t point_to_start;
@@ -189,6 +191,7 @@ public:
 
   // destructor
   ~DCF77Decoder();
+  int getNumberLineArchive();
   String getArchive(int lineNumber);
   void setBitDataCallback(std::function<void(int, int, int, int, int)> aBitDataCallback = {});
   void setStringCallback(std::function<void(String)> aStringCallback = {});
