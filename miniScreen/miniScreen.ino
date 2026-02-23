@@ -22,11 +22,12 @@ void loop() {
   if (demoMode) {
     screen.update();
   } else {
-    StringWindow win(&screen, 10, 10, 126, 15, 2, ST77XX_WHITE, ST77XX_BLACK,
+    StringWindow win(&screen, 2, 2, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
                      "          Scan the codes and support the action...          ", ST77XX_GREEN,
                      1);
-    QRWindow winQR(&screen, 10, 30, 90, 90);
     win.draw();
+
+    QRWindow winQR(&screen, 25, 17, 110, 110);
     winQR.draw();
 
     const qrcodegen::QrCode::Ecc errCorLvl =
@@ -42,8 +43,8 @@ void loop() {
 
     const qrcodegen::QrCode qrP =
         qrcodegen::QrCode::encodeText(textP, errCorLvl);
-	const int maxL = 100;
-	long long pt; 
+	const int maxL = 500;
+	long long pt = 0; 
     for (int i = 0; i < 100000; i++) {
       winQR.drawQR(qr1);
 		for (int g = 0; g < maxL; g++) { win.drawShift(pt++);}

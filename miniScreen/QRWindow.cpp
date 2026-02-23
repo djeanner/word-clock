@@ -25,9 +25,9 @@ void QRWindow::drawQR(qrcodegen::QrCode qrCode) {
     const bool fitInScreenX = (wx < fWidth);
     const bool fitInScreenY = (wy < fHeigth);
     if (fitInScreenX && fitInScreenY) {
-      shiftX = (fWidth - wx) / 2;
-      shiftY = (fHeigth - wy) / 2;
       thePointSize = testSize;
+      shiftX = (fWidth - wx) / (2 * thePointSize);
+      shiftY = (fHeigth - wy) / (2 * thePointSize);
       isOK = true;
       break;
     }
