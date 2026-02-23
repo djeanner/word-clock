@@ -110,6 +110,7 @@
     "typeinfo": "cpp",
     "variant": "cpp",
     "algorithm": "cpp",
-    "functional": "cpp"
+    "functional": "cpp",
+    "sstream": "cpp"
   }
 }

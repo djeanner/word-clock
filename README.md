@@ -255,8 +255,6 @@ cd milanWordClock
 cd ..
 cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 
-
- 
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h testClock
 cp DCF77Window.cpp DCF77Window.h testClock
 cp TFT_Window.cpp TFT_Window.h testClock
@@ -288,6 +286,7 @@ cp TFT_Screen.cpp TFT_Screen.h DCF77DispClock
 cp StringWindow.cpp StringWindow.h DCF77DispClock
 cp WifiControl.cpp WifiControl.h DCF77DispClock
 cp password.h DCF77DispClock
+
 cp main.ino DCF77DispClock/DCF77DispClock.ino
 
 cd DCF77DispClock
@@ -314,3 +313,45 @@ while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/dat
 
 while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
 
+
+# Direct compilation: all code embedded in one binary — no libraries, simple, standalone, medium size
+c++ -std=c++11 -O -o testQR testQR.cpp thirdParty/qrcodegen.cpp -IthirdParty
+
+# Static linking: library compiled into .a, then linked — self-contained binary, larger size, no runtime deps
+c++ -std=c++11 -O -c thirdParty/qrcodegen.cpp -o qrcodegen.o -IthirdParty
+ar rcs libqrcodegencpp.a qrcodegen.o
+c++ -std=c++11 -O -o test2 testQR.cpp -L. -lqrcodegencpp -IthirdParty
+rm qrcodegen.o libqrcodegencpp.a
+
+# Shared linking: library as .so — smallest executable, needs .so at runtime, requires LD_LIBRARY_PATH
+c++ -fPIC -std=c++11 -O -c thirdParty/qrcodegen.cpp -o qrcodegen.o -IthirdParty
+c++ -shared -o libqrcodegencpp.so qrcodegen.o
+echo "needs libqrcodegencpp.so"
+c++ -std=c++11 -O -o test3 testQR.cpp -L. -lqrcodegencpp -IthirdParty
+rm qrcodegen.o 
+
+
+
+
+cp TFT_Window.cpp TFT_Window.h miniScreen
+cp TFT_Screen.cpp TFT_Screen.h miniScreen
+cp StringWindow.cpp StringWindow.h miniScreen
+cp TFT_Screen.cpp TFT_Screen.h miniScreen
+cp QRWindow.cpp QRWindow.h miniScreen
+cp thirdParty/qrcodegen.cpp thirdParty/qrcodegen.hpp miniScreen
+cp hiddenFile.h  miniScreen
+
+cp miniScreen.ino miniScreen/miniScreen.ino
+cd miniScreen
+	echo "**********************************************************************************" >> serial.txt
+	date >> serial.txt
+	echo "************* Compile for pico pi"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipico  --build-path ./build --export-binaries 
+	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipico --input-dir ./build 
+
+	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* Setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
+
+	echo "************* shows stream from serial port (stop with CTRL-C)"
+cd ..
