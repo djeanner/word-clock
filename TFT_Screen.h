@@ -1,10 +1,17 @@
 #ifndef TFT_SCREEN_H
 #define TFT_SCREEN_H
 
-#include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7735.h>
-#include <XPT2046_Touchscreen.h>
+
+#ifdef ARDUINO_ARCH_RP2040
+  #include <SPI.h>
+  #include <Adafruit_GFX.h>
+  #include <Adafruit_ST7735.h>
+  #include <XPT2046_Touchscreen.h>
+#else
+  #include <lib/pico-displayDrivs/st7735/st7735.h>
+  #include <lib/pico-displayDrivs/gfx/gfx.h>
+  
+#endif
 
 /*
 === Joy-IT RB-TFT1.8-T → Raspberry Pi Pico wiring ===
@@ -34,8 +41,13 @@ Notes:
 class TFT_Screen {
 
 private:
+#ifdef ARDUINO_ARCH_RP2040
   Adafruit_ST7735 tft;
   XPT2046_Touchscreen ts;
+#else
+ 
+#endif
+
   uint8_t width, height;
   uint8_t spi_rx, spi_tx, spi_clk;
   uint8_t demoMode = 0;
@@ -52,9 +64,12 @@ public:
              uint8_t spiRX, uint8_t spiTX, uint8_t spiCLK,
              uint8_t tftCS, uint8_t tftDC, uint8_t tftRST,
              uint8_t touchCS, uint8_t touchIRQ);
-
+#ifdef ARDUINO_ARCH_RP2040
   Adafruit_ST7735* getTFT();
   XPT2046_Touchscreen* getTS();
+#else
+#endif
+
   uint8_t getWidth() {return width;}
   uint8_t getHeight() {return height;}
   void begin(bool showsHello = false, uint8_t rotation = 3);

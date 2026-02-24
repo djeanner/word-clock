@@ -1,7 +1,12 @@
 #pragma once
-#include "TFT_Window.h"
-#include "qrcodegen.hpp"
 
+#include "TFT_Window.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+  #include "qrcodegen.hpp"
+#else
+  #include "lib/qrcodegen/qrcodegen.hpp"
+#endif
 class QRWindow : public TFT_Window {
 private:
   uint16_t fpointColor;

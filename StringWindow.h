@@ -1,6 +1,17 @@
 #pragma once
 #include "TFT_Window.h"
 
+#ifdef ARDUINO_ARCH_RP2040
+  #include <SPI.h>
+  #include <Adafruit_GFX.h>
+  #include <Adafruit_ST7735.h>
+  #include <XPT2046_Touchscreen.h>
+#else
+  #include <string>
+  #include <stdio.h>
+  using String = std::string;
+#endif
+
 class StringWindow : public TFT_Window {
 private:
   String ftext;
