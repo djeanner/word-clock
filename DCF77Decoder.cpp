@@ -155,7 +155,7 @@
 #endif // DEBUGINWORDCLOCK
 
         if (areAllOK()) {
-          tm.Year = CalendarYrToTm(2026);
+          tm.Year = CalendarYrToTm(getYear());
           tm.Month = getMonth();
           tm.Day = getDayM();
           tm.Hour = getHour();

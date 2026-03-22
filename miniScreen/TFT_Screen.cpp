@@ -12,16 +12,25 @@ TFT_Screen::TFT_Screen(uint8_t widthIn, uint8_t heigthIN,
     spi_clk(spiCLK)
 {}
 
+#ifdef ARDUINO_ARCH_RP2040
 Adafruit_ST7735* TFT_Screen::getTFT() {
   return &tft;
 }
-
+#else
+#endif
+  
+#ifdef ARDUINO_ARCH_RP2040
 XPT2046_Touchscreen* TFT_Screen::getTS() {
   return &ts;
-}void TFT_Screen::begin(bool showsHello, uint8_t rotation) {
-  Serial.begin(115200);
+}
+#else
+#endif
 
-  SPI.setRX(spi_rx);
+
+void TFT_Screen::begin(bool showsHello, uint8_t rotation) {
+
+#ifdef ARDUINO_ARCH_RP2040
+ SPI.setRX(spi_rx);
   SPI.setTX(spi_tx);
   SPI.setSCK(spi_clk);
   SPI.begin();
@@ -31,6 +40,34 @@ XPT2046_Touchscreen* TFT_Screen::getTS() {
   tft.setRotation(rotation);
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
+#else
+    spi_inst_t *spi = spi0;
+    uint baud = 1000 * 1000; // 1 MHz
+    spi_init(spi0, baud);
+    gpio_set_function(spi_rx, GPIO_FUNC_SPI);
+    gpio_set_function(spi_clk,  GPIO_FUNC_SPI);
+    gpio_set_function(spi_tx, GPIO_FUNC_SPI);
+
+
+
+
+/*
+// Optional: SPI mode 0 (CPOL = 0, CPHA = 0)
+spi_set_format(spi,
+               8,                // 8 bits per transfer
+               SPI_CPOL_0,
+               SPI_CPHA_0,
+               SPI_MSB_FIRST);
+
+// (Optional) If using CS manually:
+uint spi_cs = 5;
+gpio_init(spi_cs);
+gpio_set_dir(spi_cs, GPIO_OUT);
+gpio_put(spi_cs, 1);  // deselect
+*/
+
+#endif
+
   if (showsHello) {
     tft.setCursor(10,10);
     tft.println("Hello Pico");

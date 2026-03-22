@@ -1,19 +1,19 @@
 #include "WifiControl.h"
 
 WifiControl::WifiControl(int aPort)
-    : WiFiServer(aPort), fStringCallback({}), fisWifiOK(false)  {}
+    : WiFiServer(aPort), fStringCallback({}), fisWifiOK(false) {}
 
-bool WifiControl::beginControler() {
+String WifiControl::beginControler() {
 // const char* password = "INSERT PASSWORD HERE";
 #include "password.h"
   const char *ssid = "FibreBox_X6-1A0DE7";
   // const char* password = "GDAEPE69PTRXDTWPRC";
   WiFi.begin(ssid, password);
-  bool isWifiOK;
+  String isWifiOK = "";
   for (int waitWifi = 0; waitWifi < 100; waitWifi++) {
     const auto status = WiFi.status();
     if (status == WL_CONNECTED) {
-      isWifiOK = true;
+      isWifiOK = WiFi.localIP().toString();
 
       thisPrint("http://");
       thisPrint(WiFi.localIP().toString());
@@ -33,12 +33,12 @@ bool WifiControl::beginControler() {
     delay(500);
     // DBG_PRINT(".");
   }
-  if (!isWifiOK) {
+  if (isWifiOK == "") {
     // DBG_PRINTLN("\nCould not reach wifi!");
     thisPrint("No wifi : No server.\n");
     delay(1500);
   }
-  fisWifiOK = isWifiOK;
+  fisWifiOK = (isWifiOK != "");
   return isWifiOK;
 }
 
@@ -57,7 +57,46 @@ void WifiControl::thisPrint(String aString) {
 
 void WifiControl::thisPrintln(String aString) { thisPrint(aString + "\n"); }
 
-void WifiControl::testIfRequest(bool isReliable, DCF77Decoder& dcf77) {
+String WifiControl::getFromURL(const String requestLine, const String getString,
+                          const String setString) {
+  String url = "/"; // default fallback
+  String value = "";
+
+  int firstSpace = requestLine.indexOf(' ');
+  if (firstSpace != -1) {
+
+    int secondSpace = requestLine.indexOf(' ', firstSpace + 1);
+
+    if (secondSpace != -1) {
+      url = requestLine.substring(firstSpace + 1, secondSpace);
+    } else {
+      // Only one space found → take rest of line
+      url = requestLine.substring(firstSpace + 1);
+    }
+  }
+  // Parse value
+  const String f1 = "/" + setString + "?";
+  const String f2 = "/" + f1;
+  if (url.startsWith(f1) || url.startsWith(f2)) {
+
+    int qIndex = url.indexOf('?');
+    if (qIndex != -1) {
+      String query = url.substring(qIndex + 1);
+      int keyIndex = query.indexOf(getString);
+      if (keyIndex != -1) {
+        int start = keyIndex + 6;
+        int end = query.indexOf('&', start);
+        if (end == -1)
+          end = query.length();
+        value = query.substring(start, end);
+      }
+    }
+  }
+  return value;
+}
+
+String WifiControl::testIfRequest(bool isReliable, DCF77Decoder &dcf77) {
+  String value = "";
   if (fisWifiOK) {
     fClient = WiFiServer::accept();
 
@@ -74,9 +113,22 @@ void WifiControl::testIfRequest(bool isReliable, DCF77Decoder& dcf77) {
       }
 
       // Read the HTTP request
+      String requestLine = "";
+      // Read the first line of the request
+      while (fClient.available()) {
+        char c = fClient.read();
+        if (c == '\n')
+          break; // end of first line
+        if (c != '\r')
+          requestLine += c;
+      }
       while (fClient.available()) {
         fClient.read();
       }
+
+      // Extract a value with "http://192.168.1.65/set?value=toto"
+      value = getFromURL(requestLine, "value", "set");
+
       // Réponse HTTP
       fClient.print("HTTP/1.1 200 OK\r\n");
       fClient.print("Content-Type: text/html\r\n");
@@ -89,6 +141,11 @@ void WifiControl::testIfRequest(bool isReliable, DCF77Decoder& dcf77) {
       fClient.println("<html>");
       fClient.println(" <h1>DCF77 data</h1>");
       fClient.println(" <h2>Running on Pico W Web Server</h2>");
+      if (value != "") {
+        fClient.print(" <h3> value : ");
+        fClient.print(value);
+        fClient.println(" </h3>");
+      }
 
       time_t t = now();
       String lastTimeString =
@@ -108,10 +165,11 @@ void WifiControl::testIfRequest(bool isReliable, DCF77Decoder& dcf77) {
       fClient.println("");
       fClient.print(dcf77.getArchive(max).c_str());
       fClient.println("");
-      fClient.println("                                                            "
-                  "                  M??????????????RAZzaS&lt; min "
-                  "&gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  "
-                  "&gt;3_                       Error: Pos Dur Num");
+      fClient.println(
+          "                                                            "
+          "                  M??????????????RAZzaS&lt; min "
+          "&gt;1&lt;hour&gt;2&lt;dayM&gt;&lt;D&gt;&lt;mon&gt;&lt;year  "
+          "&gt;3_                       Error: Pos Dur Num");
       for (int zu = 0; zu < max + 2; zu++) {
         fClient.print(dcf77.getArchive(zu).c_str());
         fClient.println("");
@@ -125,4 +183,5 @@ void WifiControl::testIfRequest(bool isReliable, DCF77Decoder& dcf77) {
       // DBG_PRINTLN("Client disconnected");
     }
   }
+  return value;
 }

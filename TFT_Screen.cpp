@@ -28,8 +28,6 @@ XPT2046_Touchscreen* TFT_Screen::getTS() {
 
 
 void TFT_Screen::begin(bool showsHello, uint8_t rotation) {
-  Serial.begin(115200);
-
 
 #ifdef ARDUINO_ARCH_RP2040
  SPI.setRX(spi_rx);
@@ -49,6 +47,9 @@ void TFT_Screen::begin(bool showsHello, uint8_t rotation) {
     gpio_set_function(spi_rx, GPIO_FUNC_SPI);
     gpio_set_function(spi_clk,  GPIO_FUNC_SPI);
     gpio_set_function(spi_tx, GPIO_FUNC_SPI);
+
+
+
 
 /*
 // Optional: SPI mode 0 (CPOL = 0, CPHA = 0)

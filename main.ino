@@ -44,7 +44,9 @@
 // both methods are implemented but have different requirements for compilation
 // use of interrupts does not require a clock_control to be defined for DCF77Decoder  
 #define CLOCK_CONTROL_INTERRUPT 1
-#define SERIAL_DEBUG 0  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
+#define WIFI_DCF77_DECODER 1
+
 #endif
 
 #if defined(WIFI_DCF77_DECODER)
@@ -179,7 +181,7 @@ int64_t alarmCallback(alarm_id_t id, void *user_data) {
 
 #if defined(WIFI_DCF77_DECODER)
 const bool wantsAServer = true;
-bool isWifiOK = false;
+String wifiIP = "";
 #else
 const bool wantsAServer = false;
 #endif // defined(WIFI_DCF77_DECODER)
@@ -236,18 +238,38 @@ void setup() {
 #endif // defined(TFT_DISPLAY)
 
 #if defined(WIFI_DCF77_DECODER)
+  DBG_PRINTLN("Trying to reach wifi ...\n");
+
 #if defined(TFT_DISPLAY)
       win.changeText("Trying to reach wifi ...\n");
 #endif // defined(TFT_DISPLAY)
+  DBG_PRINTLN("testcd ..a ...\n");
+
+#if defined(TFT_DISPLAY)
       server.setStringCallback([](String aString) {win.changeText(aString);});
-      isWifiOK = server.beginControler();
+#else 
+      server.setStringCallback();
+#endif // defined(TFT_DISPLAY)
+  DBG_PRINTLN("test0 ...\n");
+
+      wifiIP = server.beginControler();
+        DBG_PRINTLN("testB ...\n");
+
+      if (wifiIP != "") {
+        DBG_PRINT("Has a server running. IP :");
+        DBG_PRINTLN(wifiIP);
+      } else {
+        DBG_PRINTLN("Failed to initilialize server. Could not connect to wifi.");
+      }
+
 #endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
+  DBG_PRINTLN("test1 ...\n");
   if (debug2) theWordClock.debugSetHoursLeds(1);
   theWordClock.ocDriveLowAll_fullOFF();
+    DBG_PRINTLN("test2 ...\n");
 #endif
-
   // setting up Led and flash test
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, HIGH);
@@ -291,18 +313,36 @@ void loop() {
       if (lastMinL1 != curMin) { // every minute
         lastMinL1 = curMin;
 #if defined(MILAN_CLOCK)
-        theWordClock.setWordClock(curMin, hour(t), theClockControl.isReliable());
+        theWordClock.setWordClock(curMin, hour(t),
+                                  theClockControl.isReliable());
 #endif // defined(MILAN_CLOCK)
 
 #if defined(TFT_DISPLAY)
         win.changeText(theClockControl.getStringDateHourMinReliable() + "\n");
 #endif // defined(TFT_DISPLAY)
       } // every minute
-      
+
 #if defined(WIFI_DCF77_DECODER)
-      if (isWifiOK) {
-        server.testIfRequest(theClockControl.isReliable(), dcf77);
-      } 
+      if (wifiIP != "") {
+        const String value =
+            server.testIfRequest(theClockControl.isReliable(), dcf77);
+        if (value != "") { // 2026-03-20T14:35  // http://192.168.1.65/set?value=2026-03-21T10:35
+          if (value.length() >= 16) {
+            tmElements_t tm;
+            tm.Year = CalendarYrToTm(value.substring(0, 4).toInt());
+            tm.Month = value.substring(5, 7).toInt();
+            tm.Day = value.substring(8, 10).toInt();
+            tm.Hour = value.substring(11, 13).toInt();
+            tm.Minute = value.substring(14, 16).toInt();
+            tm.Second = 0;
+            theClockControl.storeTime(tm, true);
+            DBG_PRINT(" Updated time from wifi to ");
+            DBG_PRINT(value.substring(11, 13).toInt());
+            DBG_PRINT(":");
+            DBG_PRINTLN(value.substring(14, 16).toInt());
+          }
+        }
+      }
 #endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(TFT_DISPLAY)

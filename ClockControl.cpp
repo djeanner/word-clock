@@ -129,7 +129,16 @@
     return retString;
   }
 
-  void ClockControl::storeTime(tmElements_t tm) {
+  void ClockControl::storeTime(tmElements_t tm, bool forceReliable) {
+
+    if (forceReliable) { // bypass all checks 
+      const time_t t = makeTime(tm);
+      setTime(t);
+      thisPrint(" Force reliable to true and time to ");
+      thisPrintLN(stringTime(t));
+      qualityAccept = true;
+      return;
+    }
 
     const time_t t = makeTime(tm);
     const time_t tNow = now();

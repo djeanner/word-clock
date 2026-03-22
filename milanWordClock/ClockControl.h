@@ -31,5 +31,5 @@ public:
   void adjustTimeMinute(long int curMin);
   void storeDate(const time_t tNow, const long long errorSecondsPerDay) ;
   String stringTime(time_t t = now()) ;
-  void storeTime(tmElements_t tm);
+  void storeTime(tmElements_t tm, bool forceReliable = false);
 };

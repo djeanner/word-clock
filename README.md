@@ -240,7 +240,13 @@ arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp
 
 
  
-cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h WordClock.cpp WordClock.h milanWordClock
+cp ClockControl.cpp ClockControl.h  milanWordClock
+
+cp DCF77Decoder.cpp DCF77Decoder.h  milanWordClock
+cp WordClock.cpp WordClock.h milanWordClock
+cp WifiControl.cpp WifiControl.h milanWordClock
+cp password.h milanWordClock
+
 cp main.ino milanWordClock/milanWordClock.ino
 cd milanWordClock 
 	echo "************* Compile for pico pi W "
@@ -255,7 +261,10 @@ cd milanWordClock
 cd ..
 cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 
-cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h testClock
+
+
+cp ClockControl.cpp ClockControl.h testClock
+cp DCF77Decoder.cpp DCF77Decoder.h testClock
 cp DCF77Window.cpp DCF77Window.h testClock
 cp TFT_Window.cpp TFT_Window.h testClock
 cp TFT_Screen.cpp TFT_Screen.h testClock

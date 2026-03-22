@@ -17,12 +17,13 @@ private:
 
 public:
   WifiControl(int aPort = 80);
-  bool beginControler();
+  String beginControler();
   void makeClient();
+  String getFromURL(const String requestLine, const String getString, const String setString);
   void setStringCallback(std::function<void(String)> aStringCallback = {});
   void thisPrint(String aString);
   void thisPrintln(String aString);
-  void testIfRequest(bool isReliable, DCF77Decoder& dcf77);
+  String testIfRequest(bool isReliable, DCF77Decoder& dcf77);
 };
 
 #endif // TFT_SCREEN_H

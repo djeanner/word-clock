@@ -22,9 +22,10 @@ void loop() {
   if (demoMode) {
     screen.update();
   } else {
-    StringWindow win(&screen, 2, 2, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
-                     "          Scan the codes and support the action...          ", ST77XX_GREEN,
-                     1);
+    StringWindow win(
+        &screen, 2, 2, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
+        "          Scan the codes and support the action...          ",
+        ST77XX_GREEN, 1);
     win.draw();
 
     QRWindow winQR(&screen, 25, 17, 110, 110);
@@ -43,17 +44,23 @@ void loop() {
 
     const qrcodegen::QrCode qrP =
         qrcodegen::QrCode::encodeText(textP, errCorLvl);
-	const int maxL = 500;
-	long long pt = 0; 
+    const int maxL = 500;
+    long long pt = 0;
     for (int i = 0; i < 100000; i++) {
       winQR.drawQR(qr1);
-		for (int g = 0; g < maxL; g++) { win.drawShift(pt++);}
+      for (int g = 0; g < maxL; g++) {
+        win.drawShift(pt++);
+      }
       winQR.drawQR(qr2);
-		for (int g = 0; g < maxL; g++) { win.drawShift(pt++);}
-      winQR.draw();  // erase content
+      for (int g = 0; g < maxL; g++) {
+        win.drawShift(pt++);
+      }
+      winQR.draw(); // erase content
       winQR.drawQR(qrP);
-		for (int g = 0; g < maxL; g++) { win.drawShift(pt++);}
-      winQR.draw();  // erase content
+      for (int g = 0; g < maxL; g++) {
+        win.drawShift(pt++);
+      }
+      winQR.draw(); // erase content
     }
   }
 }

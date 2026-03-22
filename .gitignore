@@ -27,3 +27,4 @@ pip-wheel-metadata/
 # Wifi password
 password.h
 hiddenFile.h
+data/

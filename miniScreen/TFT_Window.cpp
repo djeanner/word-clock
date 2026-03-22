@@ -21,8 +21,11 @@ TFT_Window::TFT_Window(TFT_Screen* aScreen,
   fWidth = fw - 2 * fframeWidth;
   fHeigth = fh - 2 * fframeWidth; 
 }
-
+#ifdef ARDUINO_ARCH_RP2040
 Adafruit_ST7735* TFT_Window::getTFT() {return ftft;}
+#else
+ST7735* TFT_Window::getTFT() {return ftft;}
+#endif
 
 void TFT_Window::draw() {
   // draw frame

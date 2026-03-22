@@ -1,5 +1,11 @@
 #pragma once
-#include <Adafruit_ST7735.h>
+
+#ifdef ARDUINO_ARCH_RP2040
+  #include <Adafruit_ST7735.h>
+#else
+  #include <lib/pico-displayDrivs/st7735/st7735.h>
+#endif
+
 #include "TFT_Screen.h"
 
 class TFT_Window {
@@ -13,8 +19,10 @@ protected:
   uint8_t fHeigth;
   uint8_t fXpos;
   uint8_t fYpos;
+#ifdef ARDUINO_ARCH_RP2040
   Adafruit_ST7735* ftft;
-
+#else
+#endif
 public:
   TFT_Window(TFT_Screen* aScreen,
              int x, int y, int w, int h,
@@ -22,7 +30,10 @@ public:
              uint16_t frameColor,
              uint16_t bgColor);
 
+#ifdef ARDUINO_ARCH_RP2040
   Adafruit_ST7735* getTFT();
+#else
+#endif
   uint8_t getWidth() {return fWidth;}
   uint8_t getHeight() {return fHeigth;}
   uint8_t getXpos() {return fXpos;}
