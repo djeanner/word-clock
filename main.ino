@@ -243,32 +243,52 @@ void setup() {
 #if defined(TFT_DISPLAY)
       win.changeText("Trying to reach wifi ...\n");
 #endif // defined(TFT_DISPLAY)
-  DBG_PRINTLN("testcd ..a ...\n");
 
 #if defined(TFT_DISPLAY)
       server.setStringCallback([](String aString) {win.changeText(aString);});
 #else 
       server.setStringCallback();
 #endif // defined(TFT_DISPLAY)
-  DBG_PRINTLN("test0 ...\n");
 
       wifiIP = server.beginControler();
-        DBG_PRINTLN("testB ...\n");
 
-      if (wifiIP != "") {
+      if (server.isWifiOK()) {
         DBG_PRINT("Has a server running. IP :");
         DBG_PRINTLN(wifiIP);
       } else {
         DBG_PRINTLN("Failed to initilialize server. Could not connect to wifi.");
       }
+#endif // defined(WIFI_DCF77_DECODER)
+
+// try to set the time ...
+#if defined(WIFI_DCF77_DECODER)
+
+      if (server.isWifiOK()) {
+        const String value = server.getTimeFromInternet();
+        if (value != "") { 
+          if (theClockControl.storeTimeString(value)) {
+            DBG_PRINT(" In setup: Updated time from internet to ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          } else {
+            DBG_PRINT(" Updated time from internet failed string:  ");
+            DBG_PRINTLN(value);
+            DBG_PRINT(" time is still ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          }
+          //theClockControl.storeTime(tm, true);
+        } else {
+            DBG_PRINT(" getTimeFromInternet () returned EMPTY...z");
+            DBG_PRINTLN();
+        }
+      } else {
+        DBG_PRINTLN("Could not get time from internet.");
+      }
 
 #endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
-  DBG_PRINTLN("test1 ...\n");
   if (debug2) theWordClock.debugSetHoursLeds(1);
   theWordClock.ocDriveLowAll_fullOFF();
-    DBG_PRINTLN("test2 ...\n");
 #endif
   // setting up Led and flash test
   pinMode(LEDPIN, OUTPUT);
@@ -325,22 +345,18 @@ void loop() {
 #if defined(WIFI_DCF77_DECODER)
       if (wifiIP != "") {
         const String value =
-            server.testIfRequest(theClockControl.isReliable(), dcf77);
+        server.testIfRequest(theClockControl.isReliable(), dcf77);
         if (value != "") { // 2026-03-20T14:35  // http://192.168.1.65/set?value=2026-03-21T10:35
-          if (value.length() >= 16) {
-            tmElements_t tm;
-            tm.Year = CalendarYrToTm(value.substring(0, 4).toInt());
-            tm.Month = value.substring(5, 7).toInt();
-            tm.Day = value.substring(8, 10).toInt();
-            tm.Hour = value.substring(11, 13).toInt();
-            tm.Minute = value.substring(14, 16).toInt();
-            tm.Second = 0;
-            theClockControl.storeTime(tm, true);
-            DBG_PRINT(" Updated time from wifi to ");
-            DBG_PRINT(value.substring(11, 13).toInt());
-            DBG_PRINT(":");
-            DBG_PRINTLN(value.substring(14, 16).toInt());
+          if (theClockControl.storeTimeString(value)) {
+            DBG_PRINT("Updated time from wifi to ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          } else {
+            DBG_PRINT(" Updated time from wifi failed string:  ");
+            DBG_PRINTLN(value);
+            DBG_PRINT(" time is still ");
+            DBG_PRINTLN(theClockControl.stringTime());
           }
+          //theClockControl.storeTime(tm, true);
         }
       }
 #endif // defined(WIFI_DCF77_DECODER)
@@ -385,6 +401,26 @@ void loop() {
         SLEEPORDELAYMS(55000);  // waits for 55 sec
       }
     }
+
+
+// try to update time from web
+#if defined(WIFI_DCF77_DECODER)
+
+      if (server.isWifiOK()) {
+        const String value = server.getTimeFromInternet();
+        if (theClockControl.storeTimeString(value)) {
+            DBG_PRINT(" in loop : Updated time from wifi to ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          }
+      } 
+
+      // considers turning of wiki... will also terminate server...
+      if (theClockControl.isReliable()) {
+        server.shutdownWiFi();
+      }
+
+#endif // defined(WIFI_DCF77_DECODER)
+
     dcf77.reset();
     dcf77.initListen();
     DBG_PRINTLN("Restart listening to dcf77 signal ...");

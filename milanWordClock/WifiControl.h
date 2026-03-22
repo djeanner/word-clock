@@ -24,6 +24,10 @@ public:
   void thisPrint(String aString);
   void thisPrintln(String aString);
   String testIfRequest(bool isReliable, DCF77Decoder& dcf77);
+  String httpGET(const char* host, const String& url, int port = 80);
+  String getTimeFromInternet();
+  void shutdownWiFi();
+  bool isWifiOK() {return fisWifiOK;}
 };
 
-#endif // TFT_SCREEN_H
+#endif // TFT_SCREEN_H 

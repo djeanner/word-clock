@@ -32,4 +32,5 @@ public:
   void storeDate(const time_t tNow, const long long errorSecondsPerDay) ;
   String stringTime(time_t t = now()) ;
   void storeTime(tmElements_t tm, bool forceReliable = false);
+  bool storeTimeString(const String value, bool forceReliable = false);
 };

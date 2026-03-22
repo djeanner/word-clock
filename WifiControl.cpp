@@ -185,3 +185,70 @@ String WifiControl::testIfRequest(bool isReliable, DCF77Decoder &dcf77) {
   }
   return value;
 }
+
+String WifiControl::httpGET(const char *host, const String &url, int port) {
+  WiFiClient client;
+
+  if (!client.connect(host, port)) {
+    return "";
+  }
+
+  // Send HTTP request
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host +
+               "\r\n" + "Connection: close\r\n\r\n");
+
+  // Wait for response
+  unsigned long timeout = millis();
+  while (!client.available()) {
+    if (millis() - timeout > 5000) {
+      client.stop();
+      return "";
+    }
+  }
+
+  // Skip headers
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    if (line == "\r")
+      break;
+  }
+
+  // Read body
+  String payload = "";
+  while (client.available()) {
+    payload += client.readString();
+  }
+
+  client.stop();
+  return payload;
+}
+
+String WifiControl::getTimeFromInternet() {
+  String response = httpGET("worldclockapi.com", "/api/json/cet/now");
+  if (response.length() == 0)
+    return "";
+  // extract currentDateTime field of json
+  const String key = "\"currentDateTime\":\"";
+  int idx = response.indexOf(key);
+  if (idx == -1)
+    return "";
+
+  int start = idx + key.length();
+  int end = response.indexOf('"', start);
+
+  if (end == -1 || end <= start)
+    return "";
+
+  String datetime = response.substring(start, end);
+  // Example: 2026-03-22T14:35:12+01:00
+
+  return datetime;
+}
+
+void WifiControl::shutdownWiFi() {
+  if (fisWifiOK) {
+    WiFi.disconnect(true); // disconnect and erase credentials from RAM
+    WiFi.end();            // stop WiFi hardware
+    fisWifiOK = false;
+  }
+}

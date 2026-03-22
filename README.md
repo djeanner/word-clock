@@ -238,7 +238,7 @@ arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp
   --warnings all 
   --verbose
 
-
+rm -r /Users/djeanner/git/word-clock/milanWordClock/build
  
 cp ClockControl.cpp ClockControl.h  milanWordClock
 

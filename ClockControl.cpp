@@ -129,6 +129,26 @@
     return retString;
   }
 
+  bool ClockControl::storeTimeString(const String value,
+                                     const bool forceReliable) {
+    if (value.length() >= 16) {
+      tmElements_t tm;
+      tm.Year = CalendarYrToTm(value.substring(0, 4).toInt());
+      tm.Month = value.substring(5, 7).toInt();
+      tm.Day = value.substring(8, 10).toInt();
+      tm.Hour = value.substring(11, 13).toInt();
+      tm.Minute = value.substring(14, 16).toInt();
+      if (value.length() >= 19) {
+        tm.Second = value.substring(17, 19).toInt();
+      } else {
+        tm.Second = 0;
+      }
+      storeTime(tm, forceReliable);
+      return true;
+    }
+    return false;
+  }
+
   void ClockControl::storeTime(tmElements_t tm, bool forceReliable) {
 
     if (forceReliable) { // bypass all checks 
