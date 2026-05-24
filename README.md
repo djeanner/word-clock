@@ -237,7 +237,7 @@ arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp
   --build-path ./build
   --warnings all 
   --verbose
-
+## milanWordClock
 rm -r /Users/djeanner/git/word-clock/milanWordClock/build
  
 cp ClockControl.cpp ClockControl.h  milanWordClock
@@ -262,6 +262,7 @@ cd ..
 cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 
 
+## testClock
 
 cp ClockControl.cpp ClockControl.h testClock
 cp DCF77Decoder.cpp DCF77Decoder.h testClock
@@ -287,6 +288,8 @@ cd testClock
 cd ..
 DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a testClock/serial.txt
 
+
+## DCF77DispClock
 
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  DCF77DispClock
 cp DCF77Window.cpp DCF77Window.h DCF77DispClock
@@ -321,6 +324,43 @@ DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw 
 while true; do curl -s http://192.168.1.64 -o /Users/djeanner/git/word-clock/data/data_$(date +%Y-%m-%d_%H-%M).html; sleep 3600; done
 
 while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
+
+
+## geiger
+
+cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  geiger
+cp DCF77Window.cpp DCF77Window.h geiger
+cp TFT_Window.cpp TFT_Window.h geiger
+cp TFT_Screen.cpp TFT_Screen.h geiger
+cp StringWindow.cpp StringWindow.h geiger
+cp WifiControl.cpp WifiControl.h geiger
+cp password.h geiger
+
+cp main.ino geiger/geiger.ino
+
+cd geiger
+	echo "**********************************************************************************" >> serial.txt
+	date >> serial.txt
+	echo "************* Compile for pico pi W"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DGEIGER=1"
+	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipicow --input-dir ./build
+
+	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	echo "************* Setting rate 115200 to" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
+	stty -f "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" 115200 raw -echo
+
+	echo "************* shows stream from serial port (stop with CTRL-C)"
+	cd ..
+
+DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a geiger/serial.txt
+
+
+
+(use " arp -a " to get ip of devices)
+
+while true; do curl -s http://192.168.1.182 -o /Users/djeanner/git/word-clock/data/dataG_$(date +%Y-%m-%d_%H-%M).html; sleep 3600; done
+
+while true; do curl -s http://192.168.1.182 -o data/dataG_$(date +%Y-%m-%d_%H-%M).html; sleep $((3600 - $(date +%s) % 3600)); done
 
 
 # Direct compilation: all code embedded in one binary — no libraries, simple, standalone, medium size
