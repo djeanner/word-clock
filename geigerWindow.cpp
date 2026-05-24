@@ -1,6 +1,6 @@
-#include "DCF77Window.h"
+#include "geigerWindow.h"
 
-DCF77Window::DCF77Window(TFT_Screen* aScreen,
+GeigerWindow::GeigerWindow(TFT_Screen* aScreen,
 						int x, int y, int w, int h,
 						int frame,
 						uint16_t frameColor,
@@ -16,7 +16,7 @@ DCF77Window::DCF77Window(TFT_Screen* aScreen,
 	fYmap(0),
 	fLastPos(0) {}
 
-void DCF77Window::pixel(const int16_t x, const int16_t y, const uint16_t col) {
+void GeigerWindow::pixel(const int16_t x, const int16_t y, const uint16_t col) {
 	if (fdotSize == 2) {
 		ftft->drawPixel(getXpos() + 2*x  ,  getYpos() +2*y  , col);
 		ftft->drawPixel(getXpos() + 2*x+1,  getYpos() +2*y  , col);
@@ -26,7 +26,7 @@ void DCF77Window::pixel(const int16_t x, const int16_t y, const uint16_t col) {
 	}
 	ftft->drawPixel(getXpos() + x, getYpos() + y, col);
 }
-void DCF77Window::miniNum(const int16_t valueDigit, const int16_t x, const int16_t y, const uint16_t col) {
+void GeigerWindow::miniNum(const int16_t valueDigit, const int16_t x, const int16_t y, const uint16_t col) {
 	// 3x5 digit
 	const uint16_t b00 = ST77XX_BLACK;
 	const uint16_t cil = col;
@@ -115,7 +115,7 @@ case 9:
 
 }
 
-void DCF77Window::draw() {
+void GeigerWindow::draw() {
   TFT_Window::draw();
 
   ftft->setTextColor(ftextColor);// if second color, it is the background
@@ -137,7 +137,8 @@ void DCF77Window::draw() {
   }
 }
 
-void DCF77Window::updateBit(const int index, const int bitData, const int miniString, const int indexCrude, const int unused) {
+/*
+void GeigerWindow::updateBit(const int index, const int bitData, const int miniString, const int indexCrude, const int unused) {
 	const int posYminiNum = 1;
 	const int posSingleLineBit = 7;
 	const int posSingleLineBit_below = posSingleLineBit + 1;
@@ -190,3 +191,4 @@ void DCF77Window::updateBit(const int index, const int bitData, const int miniSt
 
 }
 
+*/

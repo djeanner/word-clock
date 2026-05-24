@@ -1,4 +1,6 @@
 #include "StringWindow.h"
+#include "geigerWindow.h"
+#include "geigerCounter.h"
 #include "TFT_Screen.h"
 
 // SPI and pins
@@ -11,10 +13,55 @@
 #define TOUCH_CS 26
 #define TOUCH_IRQ 255
 
+// board's led
+#define LEDPIN LED_BUILTIN
+
+// SERIAL DEBUG MACROS
+#if SERIAL_DEBUG
+#define DBG_BEGIN(x) Serial.begin(x)
+#define DBG_PRINT(x) Serial.print(x)
+#define DBG_PRINTLN(x) Serial.println(x)
+#else
+#define DBG_BEGIN(x)
+#define DBG_PRINT(x)
+#define DBG_PRINTLN(x)
+#endif
+
+// GPIO for the analog input
+#define GeigerINPUT 28
+
+const bool debug = true;
+
+#if defined(WIFI_DCF77_DECODER)
+WifiControl server(80);
+#endif // defined(TFT_DISPLAY)
+
 TFT_Screen screen(160, 128, SPI_RX, SPI_TX, SPI_CLK, TFT_CS, TFT_DC, TFT_RST,
                   TOUCH_CS, TOUCH_IRQ);
 
-void setup() { screen.begin(false, 3); }
+GeigerWindow theGeigerWin(&screen,
+                     16, 2, 126, 106,
+                     1,
+                     ST77XX_WHITE,
+                     ST77XX_BLACK,
+                     ST77XX_RED, 1, 2);
+
+const bool wantsSerial = true;
+
+#if defined(WIFI_DCF77_DECODER)
+const bool wantsAServer = true;
+GeigerCounter geigerCounter(RADIOINPUT, debug, LEDPIN, wantsSerial, wantsAServer);
+#else
+GeigerCounter geigerCounter(GeigerINPUT, debug, LEDPIN, wantsSerial);
+#endif
+
+void setup() { 
+  screen.begin(false, 3); 
+  theGeigerWin.draw();
+  
+  // dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theGeigerWin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
+
+  }
 
 void loop() {
   bool demoMode = false;
@@ -28,10 +75,8 @@ void loop() {
     win.draw();
 
 
+    const int maxL = 500;
 
-    const int The variable `maxL` in the code snippet provided is being used as a constant to define the maximum value for the inner loop in the `loop()` function. It is set to a value of 500, and the inner loop runs `maxL` times for each iteration of the outer loop. This helps control the number of iterations and the duration of the execution of the code within the nested loops.
-    The variable `maxL` in the code snippet is being used as a constant to define the maximum value for the inner loop in the `loop()` function. It is set to 500, and the inner loop runs `maxL` times in each iteration of the outer loop. This helps control the number of iterations and the duration of the loop execution.
-    maxL = 500;
     long long pt = 0;
     for (int i = 0; i < 100000; i++) {
       for (int g = 0; g < maxL; g++) {

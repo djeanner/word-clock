@@ -155,9 +155,8 @@
   }
 
   void ClockControl::storeTime(tmElements_t tm, bool forceReliable, String source) {
-
+    const time_t t = makeTime(tm);
     if (forceReliable) { // bypass all checks 
-      const time_t t = makeTime(tm);
       setTime(t);
       fSourceTime = source;
       thisPrint(" Force reliable to true and time to ");
@@ -167,7 +166,6 @@
       return;
     }
 
-    const time_t t = makeTime(tm);
     const time_t tNow = now();
 
     // analyse correction

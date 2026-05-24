@@ -252,10 +252,13 @@ void setup() {
       server.setStringCallback();
 #endif // defined(TFT_DISPLAY)
 
+      String serverNameWifi = "picow"; // for  http://picow/
+
 #if defined(MILAN_CLOCK)
-      const String serverNameWifi = "picomilan";
-#else 
-      const String serverNameWifi = "picow"; // for  http://picow/
+      serverNameWifi = "picomilan";
+#endif // MILAN_CLOCK
+#if defined(GEIGER)
+      serverNameWifi = "picoGeiger";
 #endif // MILAN_CLOCK
       wifiIP = server.beginControler(serverNameWifi);
       if (server.isWifiOK()) {

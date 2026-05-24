@@ -30,8 +30,7 @@ String WifiControl::beginControler(const String serverName) {
         thisPrint("http://");
         thisPrint(isWifiIP);
         thisPrint("/\n");
-        delay(5000);
-
+        delay(1000);
         WiFiServer::begin();
         break;
       }
@@ -44,6 +43,9 @@ String WifiControl::beginControler(const String serverName) {
       thisPrint(")\n");
       delay(500);
       // DBG_PRINT(".");
+    }
+    if (isWifiIP != "") {
+      break;
     }
   }
 

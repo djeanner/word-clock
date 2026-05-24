@@ -259,6 +259,10 @@ cd milanWordClock
 
 	echo "************* shows stream from serial port (stop with CTRL-C)" "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 cd ..
+echo "Try to find ip for milanWordClock ..."; arp -a | grep "milan" ; echo "end of seach for IP"
+
+
+
 cat "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
 
 
@@ -329,7 +333,9 @@ while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).
 ## geiger
 
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  geiger
-cp DCF77Window.cpp DCF77Window.h geiger
+
+cp geigerWindow.cpp geigerWindow.h geiger
+cp geigerCounter.cpp geigerCounter.h geiger
 cp TFT_Window.cpp TFT_Window.h geiger
 cp TFT_Screen.cpp TFT_Screen.h geiger
 cp StringWindow.cpp StringWindow.h geiger
@@ -342,8 +348,9 @@ rm -r /Users/djeanner/git/word-clock/geiger/build
 cd geiger
 	echo "**********************************************************************************" >> serial.txt
 	date >> serial.txt
-	echo "************* Compile for pico pi W"
-	arduino-cli compile --fqbn rp2040:rp2040:rpipicow  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DGEIGER=1"
+	echo "************* Compile for pico pi W NOT FOR PICO W:::::::::"
+	arduino-cli compile --fqbn rp2040:rp2040:rpipico  --build-path ./build --export-binaries  --build-property compiler.cpp.extra_flags="-DGEIGER=1"
+
 	arduino-cli upload -p "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)" --fqbn rp2040:rp2040:rpipicow --input-dir ./build
 
 	echo "************* Done upoading to " "$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"
