@@ -17,7 +17,7 @@ private:
 
 public:
   WifiControl(int aPort = 80);
-  String beginControler();
+  String beginControler(const String serverName = "picow");
   void makeClient();
   String getFromURL(const String requestLine, const String getString, const String setString);
   void setStringCallback(std::function<void(String)> aStringCallback = {});
@@ -25,6 +25,7 @@ public:
   void thisPrintln(String aString);
   String testIfRequest(bool isReliable, DCF77Decoder& dcf77);
   String httpGET(const char* host, const String& url, int port = 80);
+  String httpsGET(const char* host, const String& url, int port = 443);
   String getTimeFromInternet();
   void shutdownWiFi();
   bool isWifiOK() {return fisWifiOK;}

@@ -59,6 +59,8 @@
 #define CLOCK_CONTROL_INTERRUPT 1
 #define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
 #define WIFI_DCF77_DECODER 1
+#define WIFI_PULL_TIME_FROM_NET 1
+#define WIFI_TURN_OFF_AFTER_CORRECTION 0
 
 #endif
 
@@ -263,23 +265,30 @@ void setup() {
       server.setStringCallback();
 #endif // defined(TFT_DISPLAY)
 
-      wifiIP = server.beginControler();
-
+#if defined(MILAN_CLOCK)
+      const String serverNameWifi = "picomilan";
+#else 
+      const String serverNameWifi = "picow"; // for  http://picow/
+#endif // MILAN_CLOCK
+      wifiIP = server.beginControler(serverNameWifi);
       if (server.isWifiOK()) {
-        DBG_PRINT("Has a server running. IP :");
-        DBG_PRINTLN(wifiIP);
+        DBG_PRINT("Server running. IP :");
+        DBG_PRINT(wifiIP);
+        DBG_PRINT(" http://");
+        DBG_PRINT(serverNameWifi);
+        DBG_PRINTLN("/");
       } else {
         DBG_PRINTLN("Failed to initilialize server. Could not connect to wifi.");
       }
 #endif // defined(WIFI_DCF77_DECODER)
 
 // try to set the time ...
-#if defined(WIFI_DCF77_DECODER)
+#if defined(WIFI_PULL_TIME_FROM_NET)
 
       if (server.isWifiOK()) {
         const String value = server.getTimeFromInternet();
         if (value != "") { 
-          if (theClockControl.storeTimeString(value)) {
+          if (theClockControl.storeTimeString(value, false, "internetPull")) {
             DBG_PRINT(" In setup: Updated time from internet to ");
             DBG_PRINTLN(theClockControl.stringTime());
           } else {
@@ -288,9 +297,8 @@ void setup() {
             DBG_PRINT(" time is still ");
             DBG_PRINTLN(theClockControl.stringTime());
           }
-          //theClockControl.storeTime(tm, true);
         } else {
-            DBG_PRINT(" getTimeFromInternet () returned EMPTY...z");
+            DBG_PRINT(" getTimeFromInternet () returned EMPTY (server may be down) ...");
             DBG_PRINTLN();
         }
       } else {
@@ -334,11 +342,11 @@ void loop() {
 
   for (long superLoop = 0; superLoop < 100000000; superLoop++) {
     int lastMinL1 = minute(now());
-    for (long fastLoop = 0; fastLoop < 1000000000; fastLoop ++) {
+    for (long fastLoop = 0; fastLoop < 1000000; fastLoop ++) { // 1000000 about 18 min
       // Main listener : returns when have recieved valid time/date. May last minutes.
       const int isTimeValid = dcf77.listen(theClockControl);
       if (isTimeValid == 1) {
-        theClockControl.storeTime(dcf77.getTM());
+        theClockControl.storeTime(dcf77.getTM(), false, "dcf77");
         debug2 = false;  // stop
       }
       time_t t = now();
@@ -356,20 +364,20 @@ void loop() {
       } // every minute
 
 #if defined(WIFI_DCF77_DECODER)
-      if (wifiIP != "") {
+      if (server.isWifiOK()) {
         const String value =
         server.testIfRequest(theClockControl.isReliable(), dcf77);
         if (value != "") { // 2026-03-20T14:35  // http://192.168.1.65/set?value=2026-03-21T10:35
-          if (theClockControl.storeTimeString(value)) {
-            DBG_PRINT("Updated time from wifi to ");
+          if (theClockControl.storeTimeString(value, false, "internetPush")) {
+            DBG_PRINT("Considered to update time from wifi to ");
             DBG_PRINTLN(theClockControl.stringTime());
+            break;
           } else {
-            DBG_PRINT(" Updated time from wifi failed string:  ");
+            DBG_PRINT(" Considered from wifi failed string:  ");
             DBG_PRINTLN(value);
             DBG_PRINT(" time is still ");
             DBG_PRINTLN(theClockControl.stringTime());
           }
-          //theClockControl.storeTime(tm, true);
         }
       }
 #endif // defined(WIFI_DCF77_DECODER)
@@ -381,6 +389,44 @@ void loop() {
         break;
       }
     } // fastLoop
+
+
+// try to update time from web
+#if defined(WIFI_PULL_TIME_FROM_NET)
+
+      if (server.isWifiOK()) {
+        const String value = server.getTimeFromInternet();
+        if (theClockControl.storeTimeString(value, false, "internetPull")) {
+            DBG_PRINT(" in loop : Considered update time from wifi to ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          } else {
+            if (value == "") {
+              DBG_PRINT(" Considered update time from internet failed string is empty");
+              DBG_PRINTLN(value);            
+            } else {
+              DBG_PRINT(" Considered update time from internet failed string:  ");
+              DBG_PRINTLN(value);       
+            }
+            
+            DBG_PRINT(" time is still ");
+            DBG_PRINTLN(theClockControl.stringTime());
+          }
+      } else {
+            DBG_PRINT(" Considered update time from internet failed.");
+            DBG_PRINT(" time is still ");
+            DBG_PRINTLN(theClockControl.stringTime());
+      }
+#endif // defined(WIFI_GET_TIME_FROM_NET)
+
+#if defined(WIFI_TURN_OFF_AFTER_CORRECTION)
+
+      // considers turning of wiki... will also terminate server...
+      if (theClockControl.isCorrectionSet()) {
+        server.shutdownWiFi();
+        DBG_PRINT(" Shutdown wifi server. Time is reliable and correcton set.");
+      }
+
+#endif // defined(WIFI_DCF77_DECODER)
 
 #if defined(MILAN_CLOCK)
     // will sleep/delay for about a minute when nothing happens and not listening to dcf77
@@ -413,26 +459,27 @@ void loop() {
         if (numberMinStaysInLoop <= 0) break;
         SLEEPORDELAYMS(55000);  // waits for 55 sec
       }
-    }
 
-
-// try to update time from web
 #if defined(WIFI_DCF77_DECODER)
-
       if (server.isWifiOK()) {
-        const String value = server.getTimeFromInternet();
-        if (theClockControl.storeTimeString(value)) {
-            DBG_PRINT(" in loop : Updated time from wifi to ");
+        const String value =
+        server.testIfRequest(theClockControl.isReliable(), dcf77);
+        if (value != "") { // 2026-03-20T14:35  // http://192.168.1.65/set?value=2026-03-21T10:35
+          if (theClockControl.storeTimeString(value, false, "internetPush")) {
+            DBG_PRINT("Considered to update time from wifi to ");
+            DBG_PRINTLN(theClockControl.stringTime());
+            break;
+          } else {
+            DBG_PRINT(" Considered from wifi failed string:  ");
+            DBG_PRINTLN(value);
+            DBG_PRINT(" time is still ");
             DBG_PRINTLN(theClockControl.stringTime());
           }
-      } 
-
-      // considers turning of wiki... will also terminate server...
-      if (theClockControl.isReliable()) {
-        server.shutdownWiFi();
+        }
       }
-
 #endif // defined(WIFI_DCF77_DECODER)
+
+    }
 
     dcf77.reset();
     dcf77.initListen();
