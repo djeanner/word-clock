@@ -9,19 +9,6 @@
 #include "ClockControl.h"
 #include "DCF77Decoder.h"
 
-
-#if defined(GEIGER)
-// not using interupts for word clock is not displaying time
-#define INTERRUPT_WORD_CLOCK 0
-// both methods are implemented but have different requirements for compilation
-// use of interrupts does not require a clock_control to be defined for DCF77Decoder  
-#define CLOCK_CONTROL_INTERRUPT 0
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
-#define TFT_DISPLAY 1
-#define WIFI_DCF77_DECODER 1
-
-#endif
-
 // set using as compiler option :  --build-property compiler.cpp.extra_flags="-DMILAN_CLOCK=1"
 #if defined(DCF77DispClock)
 // not using interupts for word clock is not displaying time
@@ -265,10 +252,13 @@ void setup() {
       server.setStringCallback();
 #endif // defined(TFT_DISPLAY)
 
+      String serverNameWifi = "picow"; // for  http://picow/
+
 #if defined(MILAN_CLOCK)
-      const String serverNameWifi = "picomilan";
-#else 
-      const String serverNameWifi = "picow"; // for  http://picow/
+      serverNameWifi = "picomilan";
+#endif // MILAN_CLOCK
+#if defined(GEIGER)
+      serverNameWifi = "picoGeiger";
 #endif // MILAN_CLOCK
       wifiIP = server.beginControler(serverNameWifi);
       if (server.isWifiOK()) {

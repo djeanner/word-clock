@@ -336,7 +336,8 @@ cp StringWindow.cpp StringWindow.h geiger
 cp WifiControl.cpp WifiControl.h geiger
 cp password.h geiger
 
-cp main.ino geiger/geiger.ino
+cp geiger.ino geiger/geiger.ino
+rm -r /Users/djeanner/git/word-clock/geiger/build
 
 cd geiger
 	echo "**********************************************************************************" >> serial.txt
@@ -351,6 +352,8 @@ cd geiger
 
 	echo "************* shows stream from serial port (stop with CTRL-C)"
 	cd ..
+
+echo "Try to find ip for geiger ..."; arp -a | grep "geiger" ; echo "end of seach for IP"
 
 DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a geiger/serial.txt
 

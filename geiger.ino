@@ -29,15 +29,11 @@ void loop() {
 
 
 
-    const int maxL = 500;
+    const int The variable `maxL` in the code snippet provided is being used as a constant to define the maximum value for the inner loop in the `loop()` function. It is set to a value of 500, and the inner loop runs `maxL` times for each iteration of the outer loop. This helps control the number of iterations and the duration of the execution of the code within the nested loops.
+    The variable `maxL` in the code snippet is being used as a constant to define the maximum value for the inner loop in the `loop()` function. It is set to 500, and the inner loop runs `maxL` times in each iteration of the outer loop. This helps control the number of iterations and the duration of the loop execution.
+    maxL = 500;
     long long pt = 0;
     for (int i = 0; i < 100000; i++) {
-      for (int g = 0; g < maxL; g++) {
-        win.drawShift(pt++);
-      }
-      for (int g = 0; g < maxL; g++) {
-        win.drawShift(pt++);
-      }
       for (int g = 0; g < maxL; g++) {
         win.drawShift(pt++);
       }
