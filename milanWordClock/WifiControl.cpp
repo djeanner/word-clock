@@ -1,45 +1,59 @@
 #include "WifiControl.h"
-
 WifiControl::WifiControl(int aPort)
     : WiFiServer(aPort), fStringCallback({}), fisWifiOK(false) {}
 
-String WifiControl::beginControler() {
-// const char* password = "INSERT PASSWORD HERE";
+String WifiControl::beginControler(const String serverName) {
+  WiFi.setHostname(serverName.c_str());
+
 #include "password.h"
-  const char *ssid = "FibreBox_X6-1A0DE7";
-  // const char* password = "GDAEPE69PTRXDTWPRC";
-  WiFi.begin(ssid, password);
-  String isWifiOK = "";
-  for (int waitWifi = 0; waitWifi < 100; waitWifi++) {
-    const auto status = WiFi.status();
-    if (status == WL_CONNECTED) {
-      isWifiOK = WiFi.localIP().toString();
+// const char* passwords[] = {
+//     "INSERT PASSWORD 1 HERE",
+//     "INSERT PASSWORD 2 HERE"
+// };
 
-      thisPrint("http://");
-      thisPrint(WiFi.localIP().toString());
-      thisPrint("/\n");
-      delay(5000);
+// const char* ssids[] = {
+//     "INSERT WIFI BOX NAME 1 HERE",
+//     "INSERT WIFI BOX NAME 2 HERE"
+// };
 
-      WiFiServer::begin();
-      break;
+  String isWifiIP = "";
+
+  for (int booxLoop = 0; booxLoop < 2; booxLoop++) {
+    const char* password = passwords[booxLoop];
+    const char* ssid     = ssids[booxLoop];
+    WiFi.begin(ssid, password);
+    for (int waitWifi = 0; waitWifi < 100; waitWifi++) {
+      const auto status = WiFi.status();
+      if (status == WL_CONNECTED) {
+        isWifiIP = WiFi.localIP().toString();
+
+        thisPrint("http://");
+        thisPrint(isWifiIP);
+        thisPrint("/\n");
+        delay(5000);
+
+        WiFiServer::begin();
+        break;
+      }
+      // if (waitWifi == 0) {DBG_PRINT("\nTrying to connect wifi. Status ");}
+      //  if (waitWifi == 0) {DBG_PRINTLN(status);}
+      thisPrint("Attempt ");
+      thisPrint(String((long)waitWifi));
+      thisPrint("/100 ()");
+      thisPrint(String((long)status));
+      thisPrint(")\n");
+      delay(500);
+      // DBG_PRINT(".");
     }
-    // if (waitWifi == 0) {DBG_PRINT("\nTrying to connect wifi. Status ");}
-    //  if (waitWifi == 0) {DBG_PRINTLN(status);}
-    thisPrint("Attempt ");
-    thisPrint(String((long)waitWifi));
-    thisPrint("/100 ()");
-    thisPrint(String((long)status));
-    thisPrint(")\n");
-    delay(500);
-    // DBG_PRINT(".");
   }
-  if (isWifiOK == "") {
+
+  if (isWifiIP == "") {
     // DBG_PRINTLN("\nCould not reach wifi!");
     thisPrint("No wifi : No server.\n");
     delay(1500);
   }
-  fisWifiOK = (isWifiOK != "");
-  return isWifiOK;
+  fisWifiOK = (isWifiIP != "");
+  return isWifiIP;
 }
 
 void WifiControl::makeClient() { fClient = WiFiServer::accept(); }
@@ -224,6 +238,7 @@ String WifiControl::httpGET(const char *host, const String &url, int port) {
 }
 
 String WifiControl::getTimeFromInternet() {
+  // http://worldclockapi.com/api/json/cet/now
   String response = httpGET("worldclockapi.com", "/api/json/cet/now");
   if (response.length() == 0)
     return "";

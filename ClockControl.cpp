@@ -1,10 +1,11 @@
 #include "ClockControl.h"
 
   ClockControl::ClockControl(size_t size, bool in3, bool useSerial)
-    : qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size), 
+    : fCorrectionIsSet(false), qualityAccept(false), pointer(0), period(0), isPositiveCorrection(true), fsize(size), 
   fdebug(in3), fUseSerial(useSerial), fStringCallback({}) {
     tArray = new time_t[size];
     rArray = new long long[size];
+    fSourceTime = "";
   }
   ClockControl::~ClockControl() {
     delete[] tArray;
@@ -27,13 +28,16 @@
   }
   void ClockControl::thisPrintLN(String aString) {
 	    thisPrint(aString + "\n");
+      fLineHeader = true;
   }
   void ClockControl::thisPrint(String aString) {
+  const String stringWithHeader = fLineHeader ? "ClockControl >> " + aString : aString;
+  fLineHeader = false;
 	if (fStringCallback) {
-		fStringCallback(aString);
+		fStringCallback(stringWithHeader);
 	} 
 	if (fUseSerial) {
-		if (fdebug) Serial.print(aString);
+		if (fdebug) Serial.print(stringWithHeader);
 	}
   }
   bool ClockControl::isReliable() {
@@ -130,7 +134,8 @@
   }
 
   bool ClockControl::storeTimeString(const String value,
-                                     const bool forceReliable) {
+                                     const bool forceReliable,
+                                     const String source) {
     if (value.length() >= 16) {
       tmElements_t tm;
       tm.Year = CalendarYrToTm(value.substring(0, 4).toInt());
@@ -143,24 +148,24 @@
       } else {
         tm.Second = 0;
       }
-      storeTime(tm, forceReliable);
+      storeTime(tm, forceReliable, source);
       return true;
     }
     return false;
   }
 
-  void ClockControl::storeTime(tmElements_t tm, bool forceReliable) {
-
+  void ClockControl::storeTime(tmElements_t tm, bool forceReliable, String source) {
+    const time_t t = makeTime(tm);
     if (forceReliable) { // bypass all checks 
-      const time_t t = makeTime(tm);
       setTime(t);
+      fSourceTime = source;
       thisPrint(" Force reliable to true and time to ");
       thisPrintLN(stringTime(t));
       qualityAccept = true;
+      fSourceTime = source;
       return;
     }
 
-    const time_t t = makeTime(tm);
     const time_t tNow = now();
 
     // analyse correction
@@ -168,7 +173,8 @@
     const long long unsignedDiff = llabs(diff);
   
     thisPrintLN("");
-    thisPrint("Time submitted for validation ");
+    thisPrint("Time submitted for validation source: ");
+    thisPrintLN(source);
     thisPrint("Earlyer data reliable : ");
       if (qualityAccept) {thisPrintLN("Y");}
       else {thisPrintLN("N");}
@@ -176,13 +182,14 @@
     thisPrintLN(stringTime(t));
     thisPrint("now :            : ");
     thisPrintLN(stringTime(tNow));
-  
-    const bool critConsistent = (unsignedDiff < 100);
+    const long long critReliableDelta = 100LL;
+    const bool critConsistent = (unsignedDiff < critReliableDelta);
     if (!qualityAccept) {
       thisPrint("Crit : |");
       thisPrint(String((long)diff));
       thisPrintLN("| < 100");
       setTime(t);
+      fSourceTime = source;
       // see if can consider switch to reliable
       if (critConsistent) {
         thisPrintLN("Crit OK: Switch to reliable");
@@ -190,7 +197,11 @@
       } else {
         thisPrint("X: ");
         thisPrint(stringTime(t));
-        thisPrintLN(" is first or not consistent. It is not considered as reliable");
+        thisPrint(" is first or not consistent. ");
+        thisPrint(String((long)unsignedDiff));
+        thisPrint( " s > ");
+        thisPrint(String((long)critReliableDelta));
+        thisPrintLN("s. It is not considered as reliable");
         return;
       }
     }
@@ -209,6 +220,7 @@
         thisPrint(stringTime(t));
         thisPrintLN(": first time quality, save time but not calculating error...");
         setTime(t);  // correct time
+        fSourceTime = source;
         storeDate(tNow, 0LL);
         return;
       }
@@ -233,6 +245,7 @@
         return;
       }
       setTime(t);  // correct time
+      fSourceTime = source;
       thisPrint("OK : ");
       thisPrint(stringTime(t));
       thisPrintLN(" : calculate error for fine tuning in quality mode");
@@ -260,9 +273,15 @@
       thisPrint(") = ");
       thisPrintLN(String((int)errorSecondsPerDay));
 
-      errorSecondsPerDay += getLastCorrection();
-
+      const auto correctionLast = getLastCorrection();
       thisPrint("Including previous correction : ");
+      thisPrint(String((long)errorSecondsPerDay));
+      thisPrint(" + ");
+      thisPrint(String((long)correctionLast));
+
+      errorSecondsPerDay += correctionLast;
+
+      thisPrint(" = ");
       thisPrint(String((long)errorSecondsPerDay));
       thisPrintLN("");
       thisPrint(stringTime(t));
@@ -273,9 +292,11 @@
       thisPrint(" Period ");
       if (isPositiveCorrection) {thisPrint("add ");}
       else {thisPrint("subtract ");}
-      thisPrint("a second : every ");
+      thisPrint("a second every ");
       thisPrint(String((long)period));
       thisPrintLN(" s");
     }
     return;
   }
+
+  bool ClockControl::isCorrectionSet() { return fCorrectionIsSet; }

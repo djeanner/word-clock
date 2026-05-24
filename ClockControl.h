@@ -6,6 +6,7 @@
 #include "hardware/timer.h"
 class ClockControl {
 private:
+	bool fCorrectionIsSet;  // 0 take any time and does not running time correction. 1// used for correction
 	bool qualityAccept;  // 0 take any time and does not running time correction. 1// used for correction
 	size_t pointer;
 	long int period;
@@ -16,6 +17,8 @@ private:
 	std::function<void(String)> fStringCallback;
 	time_t *tArray;
 	long long *rArray;
+  String fSourceTime;
+  bool fLineHeader;
 public:
   ClockControl(size_t size, bool in3, bool abool);
   ~ClockControl() ;
@@ -31,6 +34,7 @@ public:
   void adjustTimeMinute(long int curMin);
   void storeDate(const time_t tNow, const long long errorSecondsPerDay) ;
   String stringTime(time_t t = now()) ;
-  void storeTime(tmElements_t tm, bool forceReliable = false);
-  bool storeTimeString(const String value, bool forceReliable = false);
+  void storeTime(tmElements_t tm, bool forceReliable = false, String source = "");
+  bool storeTimeString(const String value, bool forceReliable = false, const String source = "");
+  bool isCorrectionSet();
 };
