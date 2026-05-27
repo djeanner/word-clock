@@ -1,7 +1,8 @@
 #include "StringWindow.h"
-#include "geigerWindow.h"
-#include "geigerCounter.h"
 #include "TFT_Screen.h"
+#include "geigerCounter.h"
+#include "geigerWindow.h"
+#include "time.h"
 
 // SPI and pins
 #define SPI_RX 16
@@ -39,57 +40,109 @@ WifiControl server(80);
 TFT_Screen screen(160, 128, SPI_RX, SPI_TX, SPI_CLK, TFT_CS, TFT_DC, TFT_RST,
                   TOUCH_CS, TOUCH_IRQ);
 
-GeigerWindow theGeigerWin(&screen,
-                     16, 2, 126, 106,
-                     1,
-                     ST77XX_WHITE,
-                     ST77XX_BLACK,
-                     ST77XX_RED, 1, 2);
+GeigerWindow theGeigerWin(&screen, 2, 25 + 25, 160 - 2, 128 - 25 - 25, 1, ST77XX_WHITE,
+                          ST77XX_BLACK, ST77XX_RED, 1, 2);
 
 const bool wantsSerial = true;
 
 #if defined(WIFI_DCF77_DECODER)
 const bool wantsAServer = true;
-GeigerCounter geigerCounter(RADIOINPUT, debug, LEDPIN, wantsSerial, wantsAServer);
+GeigerCounter geigerCounter(RADIOINPUT, debug, LEDPIN, wantsSerial,
+                            wantsAServer);
 #else
 GeigerCounter geigerCounter(GeigerINPUT, debug, LEDPIN, wantsSerial);
 #endif
 
-void setup() { 
-  screen.begin(false, 3); 
+void setup() {
+  screen.begin(false, 3);
   theGeigerWin.draw();
-  
-  // dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theGeigerWin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
-  }
+  // dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int
+  // aInt5) {theGeigerWin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
+  // setting up Led and flash test
+  pinMode(LEDPIN, OUTPUT);
+  digitalWrite(LEDPIN, HIGH);
+  delay(100);
+  digitalWrite(LEDPIN, LOW);
+  delay(200);
+  digitalWrite(LEDPIN, HIGH);
+  delay(300);
+  digitalWrite(LEDPIN, LOW);
+
+  DBG_PRINTLN("End setup");
+
+  const int inVal = analogRead(GeigerINPUT);
+}
 
 void loop() {
+  const uint16_t b00 = ST77XX_BLACK;
+  const uint16_t w00 = ST77XX_WHITE;
+  const uint16_t r00 = ST77XX_RED;
+  const uint16_t g00 = ST77XX_GREEN;
   bool demoMode = false;
   if (demoMode) {
     screen.update();
   } else {
-    StringWindow win(
-        &screen, 2, 2, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
-        "          Scan the codes and support the action...          ",
-        ST77XX_GREEN, 1);
+    StringWindow win(&screen, 2, 2, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
+                     "          Geiger counter visualizer  ...          ",
+                     ST77XX_GREEN, 1);
+    StringWindow win2(&screen, 2, 2 + 25, 156, 15, 1, ST77XX_WHITE, ST77XX_BLACK,
+                     "          Geiger counter visualizer2  ...          ",
+                     ST77XX_GREEN, 1);
     win.draw();
+    win2.draw();
 
-
-    const int maxL = 500;
+    theGeigerWin.draw();
 
     long long pt = 0;
-    for (int i = 0; i < 100000; i++) {
-      for (int g = 0; g < maxL; g++) {
-        win.drawShift(pt++);
+    bool above_trig_level = false;
+    unsigned long long aMili = millis();
+    unsigned long long numberHit = 0;
+    unsigned long long sumDurations = 0;
+
+    int16_t x = 2;
+    int16_t y = 2;
+    for (long long ie = 0; ie < 10000000; ie++) {
+      for (long long i = 0; i < 1000; i++) {
+        const int inVal = analogRead(GeigerINPUT);
+        if (above_trig_level == (inVal > 500)) {
+          above_trig_level = !above_trig_level;
+
+          if (above_trig_level) {
+            theGeigerWin.pixel(0, 0, r00);
+            geigerCounter.pulse(millis());
+
+            win.changeText(geigerCounter.getString());
+            win.draw();
+             win2.changeText(geigerCounter.getString2());
+            win2.draw();
+          } else {
+            theGeigerWin.pixel(0, 0, g00);
+          }
+        }
+        // scope x y
+        if (above_trig_level) {
+          theGeigerWin.pixel(x + 0, y + 0, w00);
+        } else {
+          theGeigerWin.pixel(x + 0, y + 0, b00);
+        }
+        x++;
+        if (x > 2 + 130 / 2) {
+          x = 2;
+          y++;
+          if (y > 10 + 2) {
+            y = 2;
+            win.drawShift(pt++); //  UPDATE ONCE IN A WHILE
+          }
+        }
       }
     }
   }
 }
 
-
 // this is to facilitate addition of wifi
 /*
-  // use pico board library by Earle F. Philhower, III 
+  // use pico board library by Earle F. Philhower, III
 #include <Arduino.h> // add in header of classes
 #include <time.h>
 #include <TimeLib.h>
@@ -99,9 +152,9 @@ void loop() {
 #include "DCF77Decoder.h"
 
 
-#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not functionning well with INTERRUPT_WORD_CLOCK
-#define TFT_DISPLAY 1
-#define WIFI_DCF77_DECODER 1
+#define SERIAL_DEBUG 1  // <<< set to 0 to disable ALL serial output NOTE: not
+functionning well with INTERRUPT_WORD_CLOCK #define TFT_DISPLAY 1 #define
+WIFI_DCF77_DECODER 1
 
 #if defined(WIFI_DCF77_DECODER)
 #include "WifiControl.h"
@@ -130,16 +183,17 @@ TFT_Screen screen(160, 128,
   TOUCH_CS, TOUCH_IRQ
 );
 StringWindow win(&screen,
-	                 2, 110, screen.getWidth() - 4, 16,
-	                 1,
-	                 ST77XX_WHITE,
-	                 ST77XX_BLACK,
-	                 "Initialize\n",
-	                 ST77XX_GREEN,
-	                 1);
+                         2, 110, screen.getWidth() - 4, 16,
+                         1,
+                         ST77XX_WHITE,
+                         ST77XX_BLACK,
+                         "Initialize\n",
+                         ST77XX_GREEN,
+                         1);
 #endif
 
-#define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in DCF77Decoder 
+#define DEBUGINWORDCLOCK 1 // this is to disable a debugging feature in
+DCF77Decoder
 
 // board's led
 #define LEDPIN LED_BUILTIN
@@ -157,18 +211,18 @@ StringWindow win(&screen,
 
 // GPIO for the analog input
 #define RADIOINPUT 28
-// minimal value of the level of the RADIOINPUT for goot 500 is good for 1.5 and 3.8 V receptors
-#define MINVAL_ANTENNA 500
+// minimal value of the level of the RADIOINPUT for goot 500 is good for 1.5
+and 3.8 V receptors #define MINVAL_ANTENNA 500
 
 
 #define SLEEPORDELAYMS(ms) delay(ms)
 
 const bool debug8 = false;   // text
-//txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276, 11:57 Mon Feb 2/2026 All
-const bool debug9 = debug8;  // display long and short pulses on the fly
-const bool debug5 = false;   // display long pause pulses on the fly
-bool debug2 = !debug8;       // front display debugging steps
-const bool debug3 = true;    // dump info about the validation process of times
+//txt:[+++++++----+-++++-+-+++---+---+----+---+----++--_---£-++++-+],Lms:276,
+11:57 Mon Feb 2/2026 All const bool debug9 = debug8;  // display long and short
+pulses on the fly const bool debug5 = false;   // display long pause pulses on
+the fly bool debug2 = !debug8;       // front display debugging steps const bool
+debug3 = true;    // dump info about the validation process of times
 
 #if defined(WIFI_DCF77_DECODER)
 WifiControl server(80);
@@ -191,17 +245,15 @@ String wifiIP = "";
 const bool wantsAServer = false;
 #endif // defined(WIFI_DCF77_DECODER)
 
-#if SERIAL_DEBUG 
+#if SERIAL_DEBUG
 #if defined(WIFI_DCF77_DECODER)
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true, wantsAServer);
-#else
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true);
-#endif
-#else
-DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, false);
-#endif
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9,
+LEDPIN, true, wantsAServer); #else DCF77Decoder dcf77(RADIOINPUT,
+MINVAL_ANTENNA, debug2, debug5, debug8, debug9, LEDPIN, true); #endif #else
+DCF77Decoder dcf77(RADIOINPUT, MINVAL_ANTENNA, debug2, debug5, debug8, debug9,
+LEDPIN, false); #endif
 
-#if defined(TFT_DISPLAY)       
+#if defined(TFT_DISPLAY)
 DCF77Window theDCFwin(&screen,
                      16, 2, 126, 106,
                      1,
@@ -215,12 +267,10 @@ void setup() {
 #if INTERRUPT_WORD_CLOCK
   // interupt every 10000 us
   add_repeating_timer_us(
-    -10000,  // negative = exact interval, no drift -10000: 100 Hz to avoid visible flickering
-    timer10msCallback,
-    NULL,
-    &timer10ms);
-#endif // INTERRUPT_WORD_CLOCK
-  
+    -10000,  // negative = exact interval, no drift -10000: 100 Hz to avoid
+visible flickering timer10msCallback, NULL, &timer10ms); #endif //
+INTERRUPT_WORD_CLOCK
+
   DBG_BEGIN(115200);
   delay(2000);
 
@@ -231,14 +281,16 @@ void setup() {
 
 #if defined(TFT_DISPLAY)
   screen.begin();
-	win.draw();
-	theDCFwin.draw();
-  
+        win.draw();
+        theDCFwin.draw();
+
   const bool showControlClockOnDisplay = false;
   if (showControlClockOnDisplay) {
-    theClockControl.setStringCallback([](String aString) {win.changeText(aString);});
+    theClockControl.setStringCallback([](String aString)
+{win.changeText(aString);});
   }
-  dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
+  dcf77.setBitDataCallback([](int aInt1, int aInt2, int aInt3, int aInt4, int
+aInt5) {theDCFwin.updateBit(aInt1, aInt2, aInt3, aInt4, aInt5);});
 
 #endif // defined(TFT_DISPLAY)
 
@@ -251,7 +303,7 @@ void setup() {
 
 #if defined(TFT_DISPLAY)
       server.setStringCallback([](String aString) {win.changeText(aString);});
-#else 
+#else
       server.setStringCallback();
 #endif // defined(TFT_DISPLAY)
 
@@ -264,7 +316,8 @@ void setup() {
         DBG_PRINT(serverNameWifi);
         DBG_PRINTLN("/");
       } else {
-        DBG_PRINTLN("Failed to initilialize server. Could not connect to wifi.");
+        DBG_PRINTLN("Failed to initilialize server. Could not connect to
+wifi.");
       }
 #endif // defined(WIFI_DCF77_DECODER)
 
@@ -273,7 +326,7 @@ void setup() {
 
       if (server.isWifiOK()) {
         const String value = server.getTimeFromInternet();
-        if (value != "") { 
+        if (value != "") {
           if (theClockControl.storeTimeString(value, false, "internetPull")) {
             DBG_PRINT(" In setup: Updated time from internet to ");
             DBG_PRINTLN(theClockControl.stringTime());
@@ -284,8 +337,8 @@ void setup() {
             DBG_PRINTLN(theClockControl.stringTime());
           }
         } else {
-            DBG_PRINT(" getTimeFromInternet () returned EMPTY (server may be down) ...");
-            DBG_PRINTLN();
+            DBG_PRINT(" getTimeFromInternet () returned EMPTY (server may be
+down) ..."); DBG_PRINTLN();
         }
       } else {
         DBG_PRINTLN("Could not get time from internet.");
@@ -321,12 +374,12 @@ void loop() {
 
   for (long superLoop = 0; superLoop < 100000000; superLoop++) {
     int lastMinL1 = minute(now());
-    for (long fastLoop = 0; fastLoop < 1000000; fastLoop ++) { // 1000000 about 18 min
-      // Main listener : returns when have recieved valid time/date. May last minutes.
-      const int isTimeValid = dcf77.listen(theClockControl);
-      if (isTimeValid == 1) {
-        theClockControl.storeTime(dcf77.getTM(), false, "dcf77");
-        debug2 = false;  // stop
+    for (long fastLoop = 0; fastLoop < 1000000; fastLoop ++) { // 1000000 about
+18 min
+      // Main listener : returns when have recieved valid time/date. May last
+minutes. const int isTimeValid = dcf77.listen(theClockControl); if (isTimeValid
+== 1) { theClockControl.storeTime(dcf77.getTM(), false, "dcf77"); debug2 =
+false;  // stop
       }
       time_t t = now();
       const int curMin = minute(t);
@@ -346,8 +399,9 @@ void loop() {
       if (server.isWifiOK()) {
         const String value =
         server.testIfRequest(theClockControl.isReliable(), dcf77);
-        if (value != "") { // 2026-03-20T14:35  // http://192.168.1.65/set?value=2026-03-21T10:35
-          if (theClockControl.storeTimeString(value, false, "internetPush")) {
+        if (value != "") { // 2026-03-20T14:35  //
+http://192.168.1.65/set?value=2026-03-21T10:35 if
+(theClockControl.storeTimeString(value, false, "internetPush")) {
             DBG_PRINT("Considered to update time from wifi to ");
             DBG_PRINTLN(theClockControl.stringTime());
             break;
@@ -380,13 +434,11 @@ void loop() {
             DBG_PRINTLN(theClockControl.stringTime());
           } else {
             if (value == "") {
-              DBG_PRINT(" Considered update time from internet failed string is empty");
-              DBG_PRINTLN(value);            
-            } else {
-              DBG_PRINT(" Considered update time from internet failed string:  ");
-              DBG_PRINTLN(value);       
+              DBG_PRINT(" Considered update time from internet failed string is
+empty"); DBG_PRINTLN(value); } else { DBG_PRINT(" Considered update time from
+internet failed string:  "); DBG_PRINTLN(value);
             }
-            
+
             DBG_PRINT(" time is still ");
             DBG_PRINTLN(theClockControl.stringTime());
           }
