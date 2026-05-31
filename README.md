@@ -331,7 +331,7 @@ while true; do curl -s http://192.168.1.64 -o data/data_$(date +%Y-%m-%d_%H-%M).
 
 
 ## geiger
-
+// ---------------------- 40.00[48.99]122% 24.00[15.62]65% 20.80[3.99]19% 21.32[1.13]5%(5) 
 cp ClockControl.cpp ClockControl.h DCF77Decoder.cpp DCF77Decoder.h  geiger
 
 cp geigerWindow.cpp geigerWindow.h geiger
@@ -360,10 +360,10 @@ cd geiger
 	echo "************* shows stream from serial port (stop with CTRL-C)"
 	cd ..
 
-echo "Try to find ip for geiger ..."; arp -a | grep "geiger" ; echo "end of seach for IP"
 
 DEV="$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)"; stty -f "$DEV" 115200 raw -echo; cat "$DEV" | tee -a geiger/serial.txt
 
+echo "Try to find ip for geiger ..."; arp -a | grep "geiger" ; echo "end of seach for IP"
 
 
 (use " arp -a " to get ip of devices)

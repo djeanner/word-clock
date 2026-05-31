@@ -69,9 +69,11 @@ void setup() {
   delay(300);
   digitalWrite(LEDPIN, LOW);
 
-  DBG_PRINTLN("End setup");
-
+ DBG_BEGIN(115200);
+  delay(2000);
   const int inVal = analogRead(GeigerINPUT);
+    DBG_PRINTLN("End setup");
+
 }
 
 void loop() {
@@ -109,13 +111,16 @@ void loop() {
           above_trig_level = !above_trig_level;
 
           if (above_trig_level) {
-            theGeigerWin.pixel(0, 0, r00);
-            geigerCounter.pulse(millis());
+            DBG_PRINTLN("pulse before ");
 
+            geigerCounter.pulse(millis());
+DBG_PRINTLN("pulse");
             win.changeText(geigerCounter.getString());
             win.draw();
-             win2.changeText(geigerCounter.getString2());
+            win2.changeText(geigerCounter.getString2());
             win2.draw();
+
+            theGeigerWin.pixel(0, 0, r00);
           } else {
             theGeigerWin.pixel(0, 0, g00);
           }
