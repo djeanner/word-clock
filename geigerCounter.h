@@ -28,6 +28,8 @@ private:
   unsigned long long fai0;
   const unsigned long long
       fFirstDigitFactor; // if miliseconds. Base for 10: 10ms    100: 100 ms...
+  const unsigned long long fBaseStorage; // initially 10 will become 2
+
 
   size_t fPointerTArray;
   unsigned long long *ftArray;
@@ -47,6 +49,9 @@ private:
   unsigned long *fPulseArray;
   unsigned long *fPulseSum;
   unsigned int *fPulseNbv;
+  unsigned int *fDigitsPrevValue;
+  unsigned int *fPulseIndex;
+  
   // std::function<void(String)> fStringCallback;
   // std::function<void(int, int, int, int, int)> fBitDataCallback;
 

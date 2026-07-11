@@ -28,3 +28,4 @@ pip-wheel-metadata/
 password.h
 hiddenFile.h
 data/
+ignoreFolder/
